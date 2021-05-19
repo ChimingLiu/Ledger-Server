@@ -190,12 +190,9 @@ app.get('/getInfo', (req, res) => {
 app.get('/getInOutInfo', (req, res) => {
   handler.exec({
     sql:
-      'SELECT accountName,inoutType,balance,inoutTime,typeName,iconName FROM userinout m LEFT JOIN inouttype l on m.typeID = l.typeID WHERE id=? '+ 
-      'AND date_sub(DATE(?), INTERVAL 10 DAY) < date(inoutTime) AND date(inoutTime) < DATE(?) ' +
-      'ORDER BY inoutTime DESC LIMIT 10;',
-    params: [req.query.id, req.query.last, req.query.last],
+      'SELECT accountName,inoutType,balance,inoutTime,typeName,iconName FROM userinout m LEFT JOIN inouttype l on m.typeID = l.typeID WHERE id=? ORDER BY inoutTime DESC;',
+    params: [req.query.id],
     success: (result) => {
-      console.log(result);
       res.send({ status: true, data: result });
     },
 
@@ -269,7 +266,6 @@ app.post('/postTradingData', (req, res) => {
   if (req.body.__proto__ === undefined)
     Object.setPrototypeOf(req.body, new Object());
   let user = JSON.parse(Object.keys(req.body));
-  console.log(user);
   handler.exec({
     sql:
       'INSERT INTO investment (id,accountName,investType,totalPrice,buyPrice,buyTime,investName) VALUES (?,?,?,?,?,?,?);',

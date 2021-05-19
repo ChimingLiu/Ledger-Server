@@ -61,9 +61,9 @@ module.exports = {
     promise1.catch((err)=>{
       return err;
     })
-    // console.log(timeStamp, ans,new Date());
-    // if (timeStamp > 0) return timeStamp;
-    // return 'notThing'
+    console.log(timeStamp, ans,new Date());
+    if (timeStamp > 0) return timeStamp;
+    return 'notThing'
   }
 }
 

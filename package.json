@@ -18,7 +18,8 @@
     "mysql": "^2.18.1",
     "nodemon": "^2.0.7",
     "request": "^2.88.2",
-    "superagent": "^6.1.0"
+    "superagent": "^6.1.0",
+    "ws": "^7.4.5"
   },
   "dev": "nodemon node node.js"
 }

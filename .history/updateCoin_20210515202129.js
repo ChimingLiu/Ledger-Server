@@ -53,17 +53,17 @@ module.exports = {
         } 
       );
     })
-    let ans = promise1.then((res)=>{
-      console.log('res', res,new Date());
+    promise1.then((res)=>{
+      console.log('res', res);
       timeStamp = res;
-      return timeStamp;
     })
     promise1.catch((err)=>{
       return err;
     })
-    // console.log(timeStamp, ans,new Date());
-    // if (timeStamp > 0) return timeStamp;
-    // return 'notThing'
+    
+    console.log(timeStamp);
+    if (timeStamp > 0) return timeStamp;
+    return 'notThing'
   }
 }
 

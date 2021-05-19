@@ -191,11 +191,10 @@ app.get('/getInOutInfo', (req, res) => {
   handler.exec({
     sql:
       'SELECT accountName,inoutType,balance,inoutTime,typeName,iconName FROM userinout m LEFT JOIN inouttype l on m.typeID = l.typeID WHERE id=? '+ 
-      'AND date_sub(DATE(?), INTERVAL 10 DAY) < date(inoutTime) AND date(inoutTime) < DATE(?) ' +
+      '  WHERE date_sub(DATE(?), INTERVAL 7 DAY) <= date(inoutTime) AND date(inoutTime) < DATE(?)' +
       'ORDER BY inoutTime DESC LIMIT 10;',
     params: [req.query.id, req.query.last, req.query.last],
     success: (result) => {
-      console.log(result);
       res.send({ status: true, data: result });
     },
 

@@ -38,7 +38,7 @@ app.all('*', function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
   res.header(
     'Access-Control-Allow-Headers',
-    'Content-Type,Content-Length, Accept,X-Requested-With, token'
+    'Content-Type,Content-Length, Auth, Accept,X-Requested-With',
   );
   res.header('Access-Control-Allow-Methods', 'PUT,POST,GET,DELETE,OPTIONS');
   res.header('X-Powered-By', ' 3.2.1');
@@ -69,7 +69,7 @@ app.post('/login', (req, res) => {
         let secret = 'dktoken';
         //生成 Token
         let token = jwt.sign(user, secret, {
-          expiresIn: 60, // 设置过期时间, 24 小时
+          expiresIn: 60 * 60 * 24, // 设置过期时间, 24 小时
         });
         res.send({ status: true, msg: user.account, token });
       } else {
@@ -190,12 +190,9 @@ app.get('/getInfo', (req, res) => {
 app.get('/getInOutInfo', (req, res) => {
   handler.exec({
     sql:
-      'SELECT accountName,inoutType,balance,inoutTime,typeName,iconName FROM userinout m LEFT JOIN inouttype l on m.typeID = l.typeID WHERE id=? '+ 
-      'AND date_sub(DATE(?), INTERVAL 10 DAY) < date(inoutTime) AND date(inoutTime) < DATE(?) ' +
-      'ORDER BY inoutTime DESC LIMIT 10;',
-    params: [req.query.id, req.query.last, req.query.last],
+      'SELECT accountName,inoutType,balance,inoutTime,typeName,iconName FROM userinout m LEFT JOIN inouttype l on m.typeID = l.typeID WHERE id=? ORDER BY inoutTime DESC;',
+    params: [req.query.id],
     success: (result) => {
-      console.log(result);
       res.send({ status: true, data: result });
     },
 
@@ -269,7 +266,6 @@ app.post('/postTradingData', (req, res) => {
   if (req.body.__proto__ === undefined)
     Object.setPrototypeOf(req.body, new Object());
   let user = JSON.parse(Object.keys(req.body));
-  console.log(user);
   handler.exec({
     sql:
       'INSERT INTO investment (id,accountName,investType,totalPrice,buyPrice,buyTime,investName) VALUES (?,?,?,?,?,?,?);',
@@ -291,7 +287,9 @@ app.post('/postTradingData', (req, res) => {
   });
 });
 // 获取后台投资信息
-app.get('/getInvestment',async (req, res) => {
+app.get('/getInvestment', (req, res) => {
+  // const err = await updateCoin.updateCoinPrice();
+  // console.log(err);
   handler.exec({
     sql:'SELECT  a.index,a.accountName,a.buyPrice,a.buyTime,a.floating,a.investName,a.soldPrice,a.soldTime,a.totalPrice,b.currentUSDT '+
       'FROM investment a ,coindata b '+
@@ -321,21 +319,21 @@ app.get('/getCoinType', (req, res) =>{
     },
   });
 })
-app.get('/verifytoken', (request, response) => {
-    //这是加密的 key（密钥），和生成 token 时的必须一样
-    let secret = 'dktoken';
-    let token = request.headers['auth'];
-    if (!token) {
-        response.send({ status: false, message: 'token不能为空' });
-    }
-    jwt.verify(token, secret, (error, result) => {
-        if (error) {
-            response.send({ status: false });
-        } else {
-            response.send({ status: true, data: result });
-        }
-    })
-})
+// app.post('/verifytoken', (request, response) => {
+//     //这是加密的 key（密钥），和生成 token 时的必须一样
+//     let secret = 'dktoken';
+//     let token = request.headers['auth'];
+//     if (!token) {
+//         response.send({ status: false, message: 'token不能为空' });
+//     }
+//     jwt.verify(token, secret, (error, result) => {
+//         if (error) {
+//             response.send({ status: false });
+//         } else {
+//             response.send({ status: true, data: result });
+//         }
+//     })
+// })
 
 // // 数据库连接测试
 // connection.connect();
@@ -346,5 +344,6 @@ app.get('/verifytoken', (request, response) => {
 
 // 使用express监听端口号，
 app.listen(5555, function () {
+  updateCoin.updateCoinPrice()
   console.log('listen to 5555......');
 });

@@ -17,6 +17,7 @@ module.exports = {
         function (error, response, body) {
           if (!error && response.statusCode == 200) {
             body = JSON.parse(body);
+            console.log('inner',timeStamp);
             handler.exec({
               sql:
                 'truncate table coindata;',
@@ -53,17 +54,14 @@ module.exports = {
         } 
       );
     })
-    let ans = promise1.then((res)=>{
-      console.log('res', res,new Date());
-      timeStamp = res;
-      return timeStamp;
+    promise1.then((res)=>{
+      console.log(res,'promise thien');
     })
-    promise1.catch((err)=>{
-      return err;
-    })
-    // console.log(timeStamp, ans,new Date());
-    // if (timeStamp > 0) return timeStamp;
-    // return 'notThing'
+    promise1.catch(console.log)
+    
+    console.log(timeStamp);
+    if (timeStamp > 0) return timeStamp;
+    return 'notThing'
   }
 }
 

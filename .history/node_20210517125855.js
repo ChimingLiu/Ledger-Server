@@ -38,7 +38,7 @@ app.all('*', function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
   res.header(
     'Access-Control-Allow-Headers',
-    'Content-Type,Content-Length, Accept,X-Requested-With, token'
+    'Content-Type,Content-Length, Auth, Accept,X-Requested-With',
   );
   res.header('Access-Control-Allow-Methods', 'PUT,POST,GET,DELETE,OPTIONS');
   res.header('X-Powered-By', ' 3.2.1');
@@ -60,6 +60,7 @@ app.post('/login', (req, res) => {
     Object.setPrototypeOf(req.body, new Object());
   // 获取用户数据有问题，后端小白无法解决暂时先这样能用
   let user = JSON.parse(Object.keys(req.body));
+  console.log(user);
   handler.exec({
     sql: 'SELECT * FROM `user` WHERE id=? AND pwd=?;',
     params: [user.account, user.pwd],
@@ -190,12 +191,9 @@ app.get('/getInfo', (req, res) => {
 app.get('/getInOutInfo', (req, res) => {
   handler.exec({
     sql:
-      'SELECT accountName,inoutType,balance,inoutTime,typeName,iconName FROM userinout m LEFT JOIN inouttype l on m.typeID = l.typeID WHERE id=? '+ 
-      'AND date_sub(DATE(?), INTERVAL 10 DAY) < date(inoutTime) AND date(inoutTime) < DATE(?) ' +
-      'ORDER BY inoutTime DESC LIMIT 10;',
-    params: [req.query.id, req.query.last, req.query.last],
+      'SELECT accountName,inoutType,balance,inoutTime,typeName,iconName FROM userinout m LEFT JOIN inouttype l on m.typeID = l.typeID WHERE id=? ORDER BY inoutTime DESC;',
+    params: [req.query.id],
     success: (result) => {
-      console.log(result);
       res.send({ status: true, data: result });
     },
 
@@ -269,7 +267,6 @@ app.post('/postTradingData', (req, res) => {
   if (req.body.__proto__ === undefined)
     Object.setPrototypeOf(req.body, new Object());
   let user = JSON.parse(Object.keys(req.body));
-  console.log(user);
   handler.exec({
     sql:
       'INSERT INTO investment (id,accountName,investType,totalPrice,buyPrice,buyTime,investName) VALUES (?,?,?,?,?,?,?);',

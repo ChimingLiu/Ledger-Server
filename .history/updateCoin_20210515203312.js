@@ -61,9 +61,10 @@ module.exports = {
     promise1.catch((err)=>{
       return err;
     })
-    // console.log(timeStamp, ans,new Date());
-    // if (timeStamp > 0) return timeStamp;
-    // return 'notThing'
+    setTimeout(console.log(timeStamp, ans,new Date(),'teste'),0)
+    console.log(timeStamp, ans,new Date());
+    if (timeStamp > 0) return timeStamp;
+    return 'notThing'
   }
 }
 
