@@ -16,8 +16,7 @@ wss.on('connection', function (ws) {
         console.log(`[SERVER] Received: ${message}`);
         setTimeout(async()=>{
             try{
-            let fun = await updateCoin.updateCoinPrice();
-            console.log('websocket output :',fun);}
+            let fun = await updateCoin.updateCoinPrice();}
             catch{
                 console.log('err');
             }

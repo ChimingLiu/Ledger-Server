@@ -69,7 +69,7 @@ app.post('/login', (req, res) => {
         let secret = 'dktoken';
         //生成 Token
         let token = jwt.sign(user, secret, {
-          expiresIn: 60, // 设置过期时间, 24 小时
+          expiresIn: 60 * 60, // 设置过期时间, 24 小时
         });
         res.send({ status: true, msg: user.account, token });
       } else {
@@ -82,6 +82,24 @@ app.post('/login', (req, res) => {
   });
 });
 
+
+app.post('/registerCommit', (req, res) => {
+  //   获取用户发送请求
+  if (req.body.__proto__ === undefined)
+    Object.setPrototypeOf(req.body, new Object());
+  // 获取用户数据有问题，后端小白无法解决暂时先这样能用
+  let user = JSON.parse(Object.keys(req.body));
+  handler.exec({
+    sql: 'INSERT INTO `user` (userName, id, pwd) VALUES (?, ?,?);',
+    params: [user.username, user.userEmail, user.password],
+    success: (result) => {
+      res.send({success:true})
+    },
+    error: (err) => {
+      res.send({ success:false });
+    },
+  });
+})
 //验证资金账户是否存在
 app.get('/validateAccountExist', (req, res) => {
   handler.exec({
@@ -116,7 +134,7 @@ app.post('/newFundAccount', (req, res) => {
       accountInfo.name,
     ],
     success: (result) => {
-      if (result.length > 0) {
+      if (result.affectedRows > 0) {
         res.send({ status: true });
       } else {
         res.send({ status: false });
@@ -195,7 +213,6 @@ app.get('/getInOutInfo', (req, res) => {
       'ORDER BY inoutTime DESC LIMIT 10;',
     params: [req.query.id, req.query.last, req.query.last],
     success: (result) => {
-      console.log(result);
       res.send({ status: true, data: result });
     },
 
@@ -269,7 +286,6 @@ app.post('/postTradingData', (req, res) => {
   if (req.body.__proto__ === undefined)
     Object.setPrototypeOf(req.body, new Object());
   let user = JSON.parse(Object.keys(req.body));
-  console.log(user);
   handler.exec({
     sql:
       'INSERT INTO investment (id,accountName,investType,totalPrice,buyPrice,buyTime,investName) VALUES (?,?,?,?,?,?,?);',
@@ -312,7 +328,6 @@ app.get('/getCoinType', (req, res) =>{
   handler.exec({
     sql:'SELECT  symbol FROM coinData',
     success: (result) => {
-      console.log(result);
       res.send({ status: true, data: result });
     },
 
@@ -321,17 +336,33 @@ app.get('/getCoinType', (req, res) =>{
     },
   });
 })
+
+app.get('/sse', (req,res) => {
+  res.header({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+  });
+  res.write("data: " + (new Date()) + "\n\n");
+  setInterval(async () => {
+    let newData = await updateCoin.SSEUpdaePrice();
+    res.write('new'+ JSON.stringify(newData));
+  }, 5000);
+})
+
 app.get('/verifytoken', (request, response) => {
     //这是加密的 key（密钥），和生成 token 时的必须一样
     let secret = 'dktoken';
-    let token = request.headers['auth'];
+    let token = request.headers['token'];
     if (!token) {
         response.send({ status: false, message: 'token不能为空' });
     }
     jwt.verify(token, secret, (error, result) => {
         if (error) {
-            response.send({ status: false });
+          console.log(error);
+            response.send({ status: false, data: error });
         } else {
+          console.log(result);
             response.send({ status: true, data: result });
         }
     })
@@ -343,6 +374,10 @@ app.get('/verifytoken', (request, response) => {
 //     if (error) throw error;
 //     console.log('The solution is: ', results);
 // });
+
+
+
+
 
 // 使用express监听端口号，
 app.listen(5555, function () {
