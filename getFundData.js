@@ -1,29 +1,14 @@
-
-
-const express  = require('express');
-const app = express();
-const bodyParser = require('body-parser');
 // 引入request库
 const request = require('request');
-app.use(bodyParser.urlencoded({ extended: false }));
 // 引入数据库连接
 const handler = require('./database.js');
 
-app.get('/test',(req, res) => {
-    res.send('yes')
-})
-// INSERT INTO fundlist  (fundcode,name, type) VALUES ('a','d','d')
-// 使用express监听端口号，
-app.listen(8888, function () {
-    console.log('listen to 8888......');
-    const url = 'http://fund.eastmoney.com/js/fundcode_search.js';
+function getFundData() {
+  const url = 'http://fund.eastmoney.com/js/fundcode_search.js';
   let resBody = {};
   request(url, function (error, response, body) {
     if (!error && response.statusCode == 200) {
-      resBody = body.replace(/var\sr\s=\s/,"");
-      resBody = resBody.replace('\[\[','')
-      resBody = resBody.replace('\]\]\;',"")
-      resBody = resBody.split('],[')
+      eval(body);
       handler.exec({
         sql: 'truncate table fundlist;',
         params: [],
@@ -34,20 +19,49 @@ app.listen(8888, function () {
           console.log(err);
         },
       });
-      for(let i=0;i<resBody.length;i++){
-        let data = resBody[i].replace(/\"/g,"");
-        data = data.split(',')
+      for (let i = 0; i < r.length; i++) {
+        let data = r[i]
         handler.exec({
-            sql: 'INSERT INTO fundlist  (fundcode,name, type) VALUES (?,?,?)',
-            params: [data[0],data[2],data[3]],
-            success: (result) => {
-                console.log(data[0]);
-            },
-            error: (err) => {
-              console.log(err);
-            },
-          });
+          sql: 'INSERT INTO fundlist  (fundcode,name, type) VALUES (?,?,?)',
+          params: [data[0], data[2], data[3]],
+          success: (result) => {
+          },
+          error: (err) => {
+            console.log(err);
+          },
+        });
       }
     }
   });
-})  
+}
+// getFundData();
+// 获取天天基金中的基金信息，插入到data.js文件中
+function getFundPrice() {
+  const url =
+    'http://fund.eastmoney.com/Data/Fund_JJJZ_Data.aspx?t=1&lx=1&letter=&gsid=&text=&sort=zdf,desc&page=1,100000&atfc=&onlySale=0';
+  request(url,function (error, response, body) {
+    if (!error && response.statusCode == 200) {
+      eval(body);
+      updateFundPrice(db);
+      console.log('all success');
+    }
+  });
+}
+// 更新数据库中的基金净值
+function updateFundPrice(db) {
+  let data = db.datas;
+  console.log(data);
+  for (let i = 0; i < data.length; i++) {
+    handler.exec({
+      sql: 'UPDATE fundlist SET currentPrice = ? WHERE fundcode = ?',
+      params: [data[i][5], data[i][0]],
+      success: (result) => {
+      },
+      error: (err) => {
+        res.send({ msg: error });
+      },
+    });
+  }
+}
+
+getFundPrice();

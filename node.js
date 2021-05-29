@@ -82,7 +82,7 @@ app.post('/login', (req, res) => {
   });
 });
 
-
+// 用户注册信息提交
 app.post('/registerCommit', (req, res) => {
   //   获取用户发送请求
   if (req.body.__proto__ === undefined)
@@ -206,12 +206,12 @@ app.get('/getInfo', (req, res) => {
 
 // 获取用户收入支出信息
 app.get('/getInOutInfo', (req, res) => {
+  console.log(req.query-0);
   handler.exec({
     sql:
-      'SELECT accountName,inoutType,balance,inoutTime,typeName,iconName FROM userinout m LEFT JOIN inouttype l on m.typeID = l.typeID WHERE id=? '+ 
-      'AND date_sub(DATE(?), INTERVAL 10 DAY) < date(inoutTime) AND date(inoutTime) < DATE(?) ' +
-      'ORDER BY inoutTime DESC LIMIT 10;',
-    params: [req.query.id, req.query.last, req.query.last],
+      'SELECT accountName,inoutType,balance,inoutTime,typeName,iconName FROM userinout m LEFT JOIN inouttype l on m.typeID = l.typeID WHERE id=? ' +
+      'ORDER BY inoutTime DESC LIMIT ?,?;',
+    params: [req.query.id,req.query.length-0, req.query.length-0+20],
     success: (result) => {
       res.send({ status: true, data: result });
     },
@@ -336,7 +336,63 @@ app.get('/getCoinType', (req, res) =>{
     },
   });
 })
+// 请求获取基金代码
+app.get('/getFundCode', (req,res)=>{
+  handler.exec({
+    sql:'SELECT fundcode,name FROM fundlist WHERE fundcode LIKE ? LIMIT 6',
+    params: [ req.query.code+'%' ],
+    success: (result) => {
+      res.send({ status: true, data: result });
+    },
 
+    error: (err) => {
+      console.log(err);
+    },
+  });
+})
+// 向后台提交基金投资信息
+app.post('/postFundData', (req, res) => {
+  if (req.body.__proto__ === undefined)
+    Object.setPrototypeOf(req.body, new Object());
+  let user = JSON.parse(Object.keys(req.body));
+  console.log(user);
+  console.log(user);
+  handler.exec({
+    sql:
+      'INSERT INTO fundinvest (id,accountName,totalPrice,buyPrice,buyTime,fundCode) VALUES (?,?,?,?,?,?);',
+    params: [
+      user.id,
+      user.accountName,
+      user.totalPrice,
+      user.buyPrice,
+      new Date(user.buyTime),
+      user.code,
+    ],
+    success: (result) => {
+      res.send({ status: true });
+    },
+    error: (err) => {
+      res.send({ msg: error });
+    },
+  });
+})
+// 获取用户投资信息
+app.get('/getFundInvest', (req,res) => {handler.exec({
+  sql:`SELECT fundinvest.fundCode,fundinvest.buyTime,fundinvest.buyPrice,fundinvest.totalPrice,fundinvest.accountName,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
+  on fundinvest.fundCode = fundlist.fundCode
+  WHERE id=?`,
+  params: [ req.query.id],
+  success: (result) => {
+    res.send({ status: true, data: result });
+  },
+
+  error: (err) => {
+    console.log(err);
+    res.send({ status: false, error: err });
+  },
+});
+
+})
 app.get('/sse', (req,res) => {
   res.header({
     "Content-Type": "text/event-stream",
@@ -367,14 +423,6 @@ app.get('/verifytoken', (request, response) => {
         }
     })
 })
-
-// // 数据库连接测试
-// connection.connect();
-// connection.query('SELECT * FROM user;', function (error, results, fields) {
-//     if (error) throw error;
-//     console.log('The solution is: ', results);
-// });
-
 
 
 
