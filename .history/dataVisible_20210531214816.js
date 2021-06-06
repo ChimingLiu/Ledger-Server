@@ -1,15 +1,8 @@
-//引入express框架
-const express = require('express');
-const bodyParser = require('body-parser');
-//创建网站服务器
-const app = express();
+const request = require('request');
 // 引入数据库连接
 const handler = require('./database.js');
 
-const request = require('request');
-
-module.exports = {
-  updateCoinPrice: function () {
+updateCoinPrice: function () {
     let promise1 = new Promise((resolve, reject) => {
       request(
         'https://fxhapi.feixiaohao.com/public/v1/ticker?limit=200',
@@ -55,9 +48,3 @@ module.exports = {
     // if (timeStamp > 0) return timeStamp;
     // return 'notThing'
   },
-};
-
-// app.listen(5550, function () {
-//   updateCoinPrice();
-//   console.log('Example app listening on port 3000!');
-// });

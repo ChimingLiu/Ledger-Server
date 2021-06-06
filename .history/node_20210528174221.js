@@ -12,27 +12,27 @@ const request = require('request');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// app.get('/api/getCoinPrice', async (req, res) => {
-//   const queryBody = req.query;
-//   console.log(req.query);
-//   const url = 'https://api.zb.today/data/v1/ticker/?market=' + req.query.market;
-//   let resBody = {};
-//   request(url, function (error, response, body) {
-//     if (!error && response.statusCode == 200) {
-//       resBody = body;
-//       res.header('Access-Control-Allow-Origin', '*');
-//       res.header(
-//         'Access-Control-Allow-Headers',
-//         'Content-Type,Content-Length, Auth, Accept,X-Requested-With',
-//       );
-//       res.header('Access-Control-Allow-Methods', 'PUT,POST,GET,DELETE,OPTIONS');
-//       res.header('X-Powered-By', ' 3.2.1');
-//       body = JSON.parse(body);
-//       res.send({ body });
-//       console.log(body); // 请求成功的处理逻辑
-//     }
-//   });
-// });
+app.get('/api/getCoinPrice', async (req, res) => {
+  const queryBody = req.query;
+  console.log(req.query);
+  const url = 'https://api.zb.today/data/v1/ticker/?market=' + req.query.market;
+  let resBody = {};
+  request(url, function (error, response, body) {
+    if (!error && response.statusCode == 200) {
+      resBody = body;
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header(
+        'Access-Control-Allow-Headers',
+        'Content-Type,Content-Length, Auth, Accept,X-Requested-With',
+      );
+      res.header('Access-Control-Allow-Methods', 'PUT,POST,GET,DELETE,OPTIONS');
+      res.header('X-Powered-By', ' 3.2.1');
+      body = JSON.parse(body);
+      res.send({ body });
+      console.log(body); // 请求成功的处理逻辑
+    }
+  });
+});
 
 app.all('*', function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
@@ -355,6 +355,8 @@ app.post('/postFundData', (req, res) => {
   if (req.body.__proto__ === undefined)
     Object.setPrototypeOf(req.body, new Object());
   let user = JSON.parse(Object.keys(req.body));
+  console.log(user);
+  console.log(user);
   handler.exec({
     sql:
       'INSERT INTO fundinvest (id,accountName,totalPrice,buyPrice,buyTime,fundCode) VALUES (?,?,?,?,?,?);',
@@ -376,7 +378,7 @@ app.post('/postFundData', (req, res) => {
 })
 // 获取用户投资信息
 app.get('/getFundInvest', (req,res) => {handler.exec({
-  sql:`SELECT fundinvest.fundCode,fundinvest.buyTime,fundinvest.buyPrice,fundinvest.floating,fundinvest.totalPrice,fundinvest.accountName,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
+  sql:`SELECT fundinvest.fundCode,fundinvest.buyTime,fundinvest.buyPrice,fundinvest.totalPrice,fundinvest.accountName,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
   on fundinvest.fundCode = fundlist.fundCode
   WHERE id=?`,
   params: [ req.query.id],
