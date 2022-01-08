@@ -12,27 +12,27 @@ const request = require('request');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
-app.get('/api/getCoinPrice', async (req, res) => {
-  const queryBody = req.query;
-  console.log(req.query);
-  const url = 'https://api.zb.today/data/v1/ticker/?market=' + req.query.market;
-  let resBody = {};
-  request(url, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
-      resBody = body;
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header(
-        'Access-Control-Allow-Headers',
-        'Content-Type,Content-Length, Auth, Accept,X-Requested-With',
-      );
-      res.header('Access-Control-Allow-Methods', 'PUT,POST,GET,DELETE,OPTIONS');
-      res.header('X-Powered-By', ' 3.2.1');
-      body = JSON.parse(body);
-      res.send({ body });
-      console.log(body); // 请求成功的处理逻辑
-    }
-  });
-});
+// app.get('/api/getCoinPrice', async (req, res) => {
+//   const queryBody = req.query;
+//   console.log(req.query);
+//   const url = 'https://api.zb.today/data/v1/ticker/?market=' + req.query.market;
+//   let resBody = {};
+//   request(url, function (error, response, body) {
+//     if (!error && response.statusCode == 200) {
+//       resBody = body;
+//       res.header('Access-Control-Allow-Origin', '*');
+//       res.header(
+//         'Access-Control-Allow-Headers',
+//         'Content-Type,Content-Length, Auth, Accept,X-Requested-With',
+//       );
+//       res.header('Access-Control-Allow-Methods', 'PUT,POST,GET,DELETE,OPTIONS');
+//       res.header('X-Powered-By', ' 3.2.1');
+//       body = JSON.parse(body);
+//       res.send({ body });
+//       console.log(body); // 请求成功的处理逻辑
+//     }
+//   });
+// });
 
 app.all('*', function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
@@ -160,6 +160,111 @@ app.get('/getFundAccount', (req, res) => {
     },
   });
 });
+
+app.get('/accountAccontInfo', (req, res) => {
+  Promise.all([
+    new Promise((resolve, reject) => {
+      handler.exec({
+        sql: 'SELECT SUM(accountBalance) as Balance FROM useraccount WHERE id = ?;',
+        params: [req.query.id],
+        success: (result) => {
+          if (!result) {
+            console.log('aaaa', result);
+            resolve(0);
+            return;
+          }
+          result = JSON.parse(JSON.stringify(result));
+          resolve(result[0].Balance)
+        },
+        error: (err) => {
+          console.log(err);
+          reject(err)
+        },
+      })
+    }),
+    new Promise((resolve, reject) => {
+      handler.exec({
+        sql: 'select SUM(balance) as monthOut from userinout where date_format(inoutTime,\'%Y-%m\')=date_format(now(),\'%Y-%m\') AND id=? AND inoutType = \'out\';',
+        params: [req.query.id],
+        success: (result) => {
+          if(!result) {
+            resolve(0);
+            return;
+          }
+          result = JSON.parse(JSON.stringify(result));
+          resolve(result[0].monthOut)
+        },
+        error: (err) => {
+          console.log(err);
+          reject(err)
+        },
+      })
+    }),
+    new Promise((resolve, reject) => {
+      handler.exec({
+        sql: 'select SUM(balance) as monthIn from userinout where date_format(inoutTime,\'%Y-%m\')=date_format(now(),\'%Y-%m\') AND id=? AND inoutType = \'in\';',
+        params: [req.query.id],
+        success: (result) => {
+          if (!result) {
+            resolve(0);
+            return;}
+          console.log(result);
+          result = JSON.parse(JSON.stringify(result));
+          console.log(result);
+          resolve(result[0].monthIn)
+        },
+        error: (err) => {
+          console.log(err);
+          reject(err)
+        },
+      })
+    }),
+    new Promise((resolve, reject) => {
+      handler.exec({
+        sql: 'SELECT budget FROM user WHERE id=?',
+        params: [req.query.id],
+        success: (result) => {
+          console.log(result);
+          if (!result) {
+            resolve(0);
+            return;}
+          result = JSON.parse(JSON.stringify(result));
+          resolve(result[0].budget)
+        },
+        error: (err) => {
+          console.log(err);
+          reject(err)
+        },
+      })
+    })
+  ]).then((result) => {
+    console.log('res',result);
+    let accountInfo = {
+      curBalance:result[0]? result[0]:0,
+      monthOut: result[1]? result[1]:0,
+      monthIn: result[2]? result[2]:0,
+      budget: result[3]? result[3]:0,
+    }
+    res.send(accountInfo)
+  })
+})
+
+
+// 获取用户总余额
+app.get('/accountTotalBalance', (req, res) => {
+  handler.exec({
+    sql: 'SELECT SUM(accountBalance) FROM useraccount WHERE id = ?;',
+    params: [req.query.id],
+    success: (result) => {
+
+      res.send({ data: result });
+    },
+    error: (err) => {
+      console.log(err);
+    },
+  });
+})
+
 // 获取支出类型
 app.get('/outFlowType', (req, res) => {
   handler.exec({
@@ -204,9 +309,8 @@ app.get('/getInfo', (req, res) => {
   });
 });
 
-// 获取用户收入支出信息
+// 获取用户账本收入支出信息
 app.get('/getInOutInfo', (req, res) => {
-  console.log(req.query-0);
   handler.exec({
     sql:
       'SELECT accountName,inoutType,balance,inoutTime,typeName,iconName FROM userinout m LEFT JOIN inouttype l on m.typeID = l.typeID WHERE id=? ' +
@@ -228,49 +332,84 @@ app.post('/outFlowCommit', (req, res) => {
   if (req.body.__proto__ === undefined)
     Object.setPrototypeOf(req.body, new Object());
   let outForm = JSON.parse(Object.keys(req.body));
-  handler.exec({
-    sql:
-      'INSERT INTO userinout (id, accountName, inoutType, balance, inoutTime, typeID) VALUES (?,?,?,?,?,?);',
-    params: [
-      outForm.id,
-      outForm.account,
-      'out',
-      outForm.num,
-      new Date(outForm.date),
-      outForm.typeID,
-    ],
-    success: (result) => {
-      res.send({ status: true });
-    },
-    error: (err) => {
-      res.send({ msg: error });
-    },
-  });
+  console.log(outForm);
+  Promise.all([
+    new Promise((resolve, reject) => {
+      handler.exec({
+        sql:
+          'INSERT INTO userinout (id, accountName, inoutType, balance, inoutTime, typeID) VALUES (?,?,?,?,?,?);',
+        params: [
+          outForm.id,
+          outForm.account,
+          'out',
+          outForm.num,
+          new Date(outForm.date),
+          outForm.typeID,
+          // outForm.num,
+          // outForm.id,
+          // outForm.account,
+        ],
+        success: (result) => {
+          resolve(result)
+        },
+        error: (err) => {
+          reject(err)
+        },
+      })
+    }),
+    new Promise((resolve, reject) => {
+      handler.exec({
+        sql:
+          'UPDATE useraccount SET accountBalance=accountBalance-? WHERE id=? AND accountName=?;',
+        params: [
+          outForm.num,
+          outForm.id,
+          outForm.account,
+        ],
+        success: (result) => {
+          resolve(result)
+        },
+        error: (err) => {
+          reject(err)
+        },
+      })
+    })
+  ]).then((result) => {
+    res.send(result)
+  })
+  ;
 });
-// 向后台提交记账支出数据
+// 向后台提交记账收入数据
 app.post('/inFlowCommit', (req, res) => {
   // 获取用户发送请求
   if (req.body.__proto__ === undefined)
     Object.setPrototypeOf(req.body, new Object());
   let outForm = JSON.parse(Object.keys(req.body));
-  handler.exec({
-    sql:
-      'INSERT INTO userinout (id, accountName, inoutType, balance, inoutTime, typeID) VALUES (?,?,?,?,?,?);',
-    params: [
-      outForm.id,
-      outForm.account,
-      'in',
-      outForm.num,
-      new Date(outForm.date),
-      outForm.typeID,
-    ],
-    success: (result) => {
-      res.send({ status: true });
-    },
-    error: (err) => {
-      res.send({ msg: error });
-    },
-  });
+  Promise.all([
+    new Promise((resolve, reject) => {
+      handler.exec({
+        sql:
+          'INSERT INTO userinout (id, accountName, inoutType, balance, inoutTime, typeID) VALUES (?,?,?,?,?,?);',
+        params: [
+          outForm.id,
+          outForm.account,
+          'in',
+          outForm.num,
+          new Date(outForm.date),
+          outForm.typeID,
+        ],
+        success: (result) => {
+          resolve(result)
+          // res.send({ status: true });
+        },
+        error: (err) => {
+          reject(err)
+          // res.send({ msg: error });
+        },
+      });
+    })
+  ])
+  
 });
 
 // 提交内部转账数据

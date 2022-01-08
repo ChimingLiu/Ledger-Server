@@ -160,6 +160,75 @@ app.get('/getFundAccount', (req, res) => {
     },
   });
 });
+
+app.get('/accountAccontInfo', (req, res) => {
+  console.log('ressresr')
+  Promise.all([
+    new Promise((resolve, reject) => {
+      handler.exec({
+        sql: 'SELECT SUM(accountBalance) as Balance FROM useraccount WHERE id = ?;',
+        params: [req.query.id],
+        success: (result) => {
+          console.log(result.balance)
+          resolve(result);
+        },
+        error: (err) => {
+          console.log(err);
+          reject(err)
+        },
+      })
+    }),
+    new Promise((resolve, reject) => {
+      handler.exec({
+        sql: 'select SUM(balance) from userinout where date_format(inoutTime,\'%Y-%m\')=date_format(now(),\'%Y-%m\') AND id=? AND inoutType = \'out\';',
+        params: [req.query.id],
+        success: (result) => {
+
+          resolve(result)
+          // res.send({ data: result });
+        },
+        error: (err) => {
+          console.log(err);
+          reject(err)
+        },
+      })
+    }),
+    new Promise((resolve, reject) => {
+      handler.exec({
+        sql: 'select SUM(balance) from userinout where date_format(inoutTime,\'%Y-%m\')=date_format(now(),\'%Y-%m\') AND id=? AND inoutType = \'in\';',
+        params: [req.query.id],
+        success: (result) => {
+          resolve(result)
+          // console.log(JSON.parse(result));
+          // res.send({ data: result });
+        },
+        error: (err) => {
+          console.log(err);
+          reject(err)
+        },
+      })
+    })
+  ]).then((result) => {
+    console.log('res',...result);
+    res.send(result)
+  })
+})
+
+
+// 获取用户总余额
+app.get('/accountTotalBalance', (req, res) => {
+  handler.exec({
+    sql: 'SELECT SUM(accountBalance) FROM useraccount WHERE id = ?;',
+    params: [req.query.id],
+    success: (result) => {
+      res.send({ data: result });
+    },
+    error: (err) => {
+      console.log(err);
+    },
+  });
+})
+
 // 获取支出类型
 app.get('/outFlowType', (req, res) => {
   handler.exec({
@@ -206,7 +275,6 @@ app.get('/getInfo', (req, res) => {
 
 // 获取用户收入支出信息
 app.get('/getInOutInfo', (req, res) => {
-  console.log(req.query-0);
   handler.exec({
     sql:
       'SELECT accountName,inoutType,balance,inoutTime,typeName,iconName FROM userinout m LEFT JOIN inouttype l on m.typeID = l.typeID WHERE id=? ' +

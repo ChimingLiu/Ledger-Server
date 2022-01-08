@@ -202,34 +202,16 @@ app.get('/accountAccontInfo', (req, res) => {
     }),
     new Promise((resolve, reject) => {
       handler.exec({
-        sql: 'select SUM(balance) as monthIn from userinout where date_format(inoutTime,\'%Y-%m\')=date_format(now(),\'%Y-%m\') AND id=? AND inoutType = \'in\';',
+        sql: 'select SUM(balance) as monthIn in from userinout where date_format(inoutTime,\'%Y-%m\')=date_format(now(),\'%Y-%m\') AND id=? AND inoutType = \'in\';',
         params: [req.query.id],
         success: (result) => {
+          console.log(result);
           if (!result) {
             resolve(0);
             return;}
           console.log(result);
           result = JSON.parse(JSON.stringify(result));
-          console.log(result);
           resolve(result[0].monthIn)
-        },
-        error: (err) => {
-          console.log(err);
-          reject(err)
-        },
-      })
-    }),
-    new Promise((resolve, reject) => {
-      handler.exec({
-        sql: 'SELECT budget FROM user WHERE id=?',
-        params: [req.query.id],
-        success: (result) => {
-          console.log(result);
-          if (!result) {
-            resolve(0);
-            return;}
-          result = JSON.parse(JSON.stringify(result));
-          resolve(result[0].budget)
         },
         error: (err) => {
           console.log(err);
@@ -240,10 +222,9 @@ app.get('/accountAccontInfo', (req, res) => {
   ]).then((result) => {
     console.log('res',result);
     let accountInfo = {
-      curBalance:result[0]? result[0]:0,
-      monthOut: result[1]? result[1]:0,
-      monthIn: result[2]? result[2]:0,
-      budget: result[3]? result[3]:0,
+      curBalance:result[0],
+      monthOut: result[1],
+      monthIn: result[2],
     }
     res.send(accountInfo)
   })
@@ -309,7 +290,7 @@ app.get('/getInfo', (req, res) => {
   });
 });
 
-// 获取用户账本收入支出信息
+// 获取用户收入支出信息
 app.get('/getInOutInfo', (req, res) => {
   handler.exec({
     sql:
@@ -332,103 +313,49 @@ app.post('/outFlowCommit', (req, res) => {
   if (req.body.__proto__ === undefined)
     Object.setPrototypeOf(req.body, new Object());
   let outForm = JSON.parse(Object.keys(req.body));
-  console.log(outForm);
-  Promise.all([
-    new Promise((resolve, reject) => {
-      handler.exec({
-        sql:
-          'INSERT INTO userinout (id, accountName, inoutType, balance, inoutTime, typeID) VALUES (?,?,?,?,?,?);',
-        params: [
-          outForm.id,
-          outForm.account,
-          'out',
-          outForm.num,
-          new Date(outForm.date),
-          outForm.typeID,
-          // outForm.num,
-          // outForm.id,
-          // outForm.account,
-        ],
-        success: (result) => {
-          resolve(result)
-        },
-        error: (err) => {
-          reject(err)
-        },
-      })
-    }),
-    new Promise((resolve, reject) => {
-      handler.exec({
-        sql:
-          'UPDATE useraccount SET accountBalance=accountBalance-? WHERE id=? AND accountName=?;',
-        params: [
-          outForm.num,
-          outForm.id,
-          outForm.account,
-        ],
-        success: (result) => {
-          resolve(result)
-        },
-        error: (err) => {
-          reject(err)
-        },
-      })
-    })
-  ]).then((result) => {
-    res.send(result)
-  })
-  ;
+  handler.exec({
+    sql:
+      'INSERT INTO userinout (id, accountName, inoutType, balance, inoutTime, typeID) VALUES (?,?,?,?,?,?);',
+    params: [
+      outForm.id,
+      outForm.account,
+      'out',
+      outForm.num,
+      new Date(outForm.date),
+      outForm.typeID,
+    ],
+    success: (result) => {
+      res.send({ status: true });
+    },
+    error: (err) => {
+      res.send({ msg: error });
+    },
+  });
 });
-// 向后台提交记账收入数据
+// 向后台提交记账支出数据
 app.post('/inFlowCommit', (req, res) => {
   // 获取用户发送请求
   if (req.body.__proto__ === undefined)
     Object.setPrototypeOf(req.body, new Object());
   let outForm = JSON.parse(Object.keys(req.body));
-  Promise.all([
-    new Promise((resolve, reject) => {
-      handler.exec({
-        sql:
-          'INSERT INTO userinout (id, accountName, inoutType, balance, inoutTime, typeID) VALUES (?,?,?,?,?,?);',
-        params: [
-          outForm.id,
-          outForm.account,
-          'in',
-          outForm.num,
-          new Date(outForm.date),
-          outForm.typeID,
-        ],
-        success: (result) => {
-          resolve(result)
-          // res.send({ status: true });
-        },
-        error: (err) => {
-          reject(err)
-          // res.send({ msg: error });
-        },
-      });
-    }),
-    new Promise((resolve, reject) => {
-      handler.exec({
-        sql:
-          'UPDATE useraccount SET accountBalance=accountBalance+? WHERE id=? AND accountName=?;',
-        params: [
-          outForm.num,
-          outForm.id,
-          outForm.account,
-        ],
-        success: (result) => {
-          resolve(result)
-        },
-        error: (err) => {
-          reject(err)
-        },
-      })
-    }),
-  ]).then((result) => {
-    res.send({ status: true });
-  })
-  
+  handler.exec({
+    sql:
+      'INSERT INTO userinout (id, accountName, inoutType, balance, inoutTime, typeID) VALUES (?,?,?,?,?,?);',
+    params: [
+      outForm.id,
+      outForm.account,
+      'in',
+      outForm.num,
+      new Date(outForm.date),
+      outForm.typeID,
+    ],
+    success: (result) => {
+      res.send({ status: true });
+    },
+    error: (err) => {
+      res.send({ msg: error });
+    },
+  });
 });
 
 // 提交内部转账数据

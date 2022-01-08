@@ -55,31 +55,9 @@ module.exports = {
     // if (timeStamp > 0) return timeStamp;
     // return 'notThing'
   },
-  SSEUpdaePrice: function () {
-    return promise1 = new Promise((resolve, reject) => {
-      request(
-        'https://fxhapi.feixiaohao.com/public/v1/ticker?limit=100',
-        function (error, response, body) {
-          if (!error && response.statusCode == 200) {
-            body = JSON.parse(body);
-            let data = [];
-            for(let i=0;i<body.length;i++){
-              let temp = {};
-              temp['symbol'] = body[i].symbol;
-              temp['price_usd'] = body[i].price_usd;
-              data.push(temp);
-            }
-            resolve(data);
-          } else {
-            return false
-          }
-        },
-      );
-    })
-  },
 };
 
-// app.listen(5550, function () {
-//   updateCoinPrice();
-//   console.log('Example app listening on port 3000!');
-// });
+app.listen(5550, function () {
+  updateCoinPrice();
+  console.log('Example app listening on port 3000!');
+});

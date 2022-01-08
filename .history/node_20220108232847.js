@@ -425,7 +425,7 @@ app.post('/inFlowCommit', (req, res) => {
         },
       })
     }),
-  ]).then((result) => {
+  ]).then((res) => {
     res.send({ status: true });
   })
   

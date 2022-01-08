@@ -423,9 +423,8 @@ app.post('/inFlowCommit', (req, res) => {
         error: (err) => {
           reject(err)
         },
-      })
-    }),
-  ]).then((result) => {
+      }
+  ]).then((res) => {
     res.send({ status: true });
   })
   
