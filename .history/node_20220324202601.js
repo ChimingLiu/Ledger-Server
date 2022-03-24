@@ -3,18 +3,19 @@ const express = require('express');
 const app = express();
 // toeken 设置
 const bodyParser = require('body-parser');
+const jwt = require('jsonwebtoken');
 // 引入数据库连接
 const handler = require('./database.js');
 const updateCoin = require('./updateCoin.js');
 
 const request = require('request');
 
+
 /* 
  *引入router 
  * */
 const accountRouter = require('./router/account');
 const bookingRouter = require('./router/booking');
-const investRouter = require('./router/invest');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -54,16 +55,23 @@ app.all('*', function (req, res, next) {
     next();
   }
 });
+
 //拦截所有请求
 //extended:false 方法内部使用querystring模块处理请求参数的格式
 //extended:true 方法内部使用第三方模块qs处理请求参数的格式
 app.use(bodyParser.urlencoded({ extended: false }));
+
 // 账号相关路由
 app.use('/account', accountRouter);
+
+
 // 记账相关路由
 app.use('/booking', bookingRouter);
-// 记账相关路由
-app.use('/invest', investRouter);
+
+
+
+
+
 app.get('/sse', (req,res) => {
   res.header({
     "Content-Type": "text/event-stream",
@@ -76,6 +84,11 @@ app.get('/sse', (req,res) => {
     res.write('new'+ JSON.stringify(newData));
   }, 5000);
 })
+
+
+
+
+
 
 // 使用express监听端口号，
 app.listen(5555, function () {
