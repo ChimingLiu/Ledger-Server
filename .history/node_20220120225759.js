@@ -432,7 +432,9 @@ app.get('/deleteReccord', (req, res) => {
     params: [req.query.id, req.query.index],
     success: (result) => {
       res.send({ status: true, data: result });
+      console.log('delete success')
     },
+
     error: (err) => {
       console.log(err);
     },

@@ -169,6 +169,7 @@ app.get('/accountAccontInfo', (req, res) => {
         params: [req.query.id],
         success: (result) => {
           if (!result) {
+            console.log('aaaa', result);
             resolve(0);
             return;
           }
@@ -207,7 +208,9 @@ app.get('/accountAccontInfo', (req, res) => {
           if (!result) {
             resolve(0);
             return;}
+          console.log(result);
           result = JSON.parse(JSON.stringify(result));
+          console.log(result);
           resolve(result[0].monthIn)
         },
         error: (err) => {
@@ -221,6 +224,7 @@ app.get('/accountAccontInfo', (req, res) => {
         sql: 'SELECT budget FROM user WHERE id=?',
         params: [req.query.id],
         success: (result) => {
+          console.log(result);
           if (!result) {
             resolve(0);
             return;}
@@ -234,6 +238,7 @@ app.get('/accountAccontInfo', (req, res) => {
       })
     })
   ]).then((result) => {
+    console.log('res',result);
     let accountInfo = {
       curBalance:result[0]? result[0]:0,
       monthOut: result[1]? result[1]:0,
@@ -312,6 +317,7 @@ app.get('/getInOutInfo', (req, res) => {
       'ORDER BY inoutTime DESC LIMIT ?,?;',
     params: [req.query.id,req.query.length-0, req.query.length-0+20],
     success: (result) => {
+      console.log(';rrrr', result)
       res.send({ status: true, data: result });
     },
 
@@ -327,6 +333,7 @@ app.post('/outFlowCommit', (req, res) => {
   if (req.body.__proto__ === undefined)
     Object.setPrototypeOf(req.body, new Object());
   let outForm = JSON.parse(Object.keys(req.body));
+  console.log(outForm);
   Promise.all([
     new Promise((resolve, reject) => {
       handler.exec({
@@ -424,20 +431,6 @@ app.post('/inFlowCommit', (req, res) => {
   })
   
 });
-
-// 删除后台指定记账记录
-app.get('/deleteReccord', (req, res) => {
-  handler.exec({
-    sql:'DELETE FROM userinout WHERE id=? AND `index` = ?;',
-    params: [req.query.id, req.query.index],
-    success: (result) => {
-      res.send({ status: true, data: result });
-    },
-    error: (err) => {
-      console.log(err);
-    },
-  });
-})
 
 // 提交内部转账数据
 app.post('/submitExchange', (req, res) => {
