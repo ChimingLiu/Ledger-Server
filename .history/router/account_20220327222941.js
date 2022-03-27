@@ -200,23 +200,16 @@ router.get('/getFundAccount', (req, res) => {
 // 删除用户账户及其对应记账记录
 router.get('/deleteAccount', (req,res) => {
   handler.exec({
-    sql: 'DELETE FROM userinout WHERE id=? AND accountName=?;',
+    sql: 'DELETE FROM useraccount WHERE id=? AND accountName=?;',
     params: [
+      req.query.id,
+      req.query.accountName,
       req.query.id,
       req.query.accountName,
     ],
     success: (result) => {
-      handler.exec({
-        sql:'DELETE FROM useraccount WHERE id=? AND accountName=?;',
-        params: [
-          req.query.id,
-          req.query.accountName,
-        ],
-        success: (r) => {
-          console.log(r,'ddddd',req.query.id,req.query.accountName);
-          res.send({code:200})
-        }
-      },)
+      console.log(result,'ddddd',req.query.id,req.query.accountName);
+      res.send({code:200})
     }
   })
 })

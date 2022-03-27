@@ -207,16 +207,11 @@ router.get('/deleteAccount', (req,res) => {
     ],
     success: (result) => {
       handler.exec({
-        sql:'DELETE FROM useraccount WHERE id=? AND accountName=?;',
-        params: [
-          req.query.id,
-          req.query.accountName,
-        ],
-        success: (r) => {
-          console.log(r,'ddddd',req.query.id,req.query.accountName);
-          res.send({code:200})
-        }
-      },)
+        sql:'DELETE FROM useraccount WHERE id=? AND accountName=?;' +
+          
+      })
+      console.log(result,'ddddd',req.query.id,req.query.accountName);
+      res.send({code:200})
     }
   })
 })

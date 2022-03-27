@@ -167,7 +167,7 @@ router.post('/newFundAccount', (req, res) => {
 // 获取用户资金账户
 router.get('/getFundAccount', (req, res) => {
   handler.exec({
-    sql: 'SELECT accountType,accountName,accountBalance FROM useraccount WHERE id=?;',
+    sql: 'SELECT accountType,accountName,balance FROM useraccount WHERE id=?;',
     params: [req.query.id],
     success: (result) => {
       // res.send({ data: result });
@@ -186,6 +186,7 @@ router.get('/getFundAccount', (req, res) => {
               }
             }
           }
+          console.log(result)
           res.send({data:result})
         }
       })
@@ -197,31 +198,6 @@ router.get('/getFundAccount', (req, res) => {
   });
 });
 
-// 删除用户账户及其对应记账记录
-router.get('/deleteAccount', (req,res) => {
-  handler.exec({
-    sql: 'DELETE FROM userinout WHERE id=? AND accountName=?;',
-    params: [
-      req.query.id,
-      req.query.accountName,
-    ],
-    success: (result) => {
-      handler.exec({
-        sql:'DELETE FROM useraccount WHERE id=? AND accountName=?;',
-        params: [
-          req.query.id,
-          req.query.accountName,
-        ],
-        success: (r) => {
-          console.log(r,'ddddd',req.query.id,req.query.accountName);
-          res.send({code:200})
-        }
-      },)
-    }
-  })
-})
-
-// 获取用户账户信息总览
 router.get('/accountAccontInfo', (req, res) => {
   Promise.all([
     new Promise((resolve, reject) => {
@@ -304,5 +280,4 @@ router.get('/accountAccontInfo', (req, res) => {
     res.send(accountInfo)
   })
 })
-
 module.exports = router;

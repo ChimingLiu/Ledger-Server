@@ -7,7 +7,7 @@ const app = express();
 const handler = require('./database.js');
 
 const request = require('request');
-//更新数字货币价格，目前接口已停用
+
 module.exports = {
   updateCoinPrice: function () {
     let promise1 = new Promise((resolve, reject) => {
