@@ -305,4 +305,23 @@ router.get('/accountAccontInfo', (req, res) => {
   })
 })
 
+// 查询用户某月收入支出数据
+router.get('/userMonthInout', (req, res) => {
+  handler.exec({
+    sql: 'SELECT inoutTime, SUM(balance) as sum, inoutType '+
+    'FROM userinout WHERE id=? '+
+    'AND  year(inoutTime)=? and month(inoutTime)=? '+
+    'GROUP BY inoutTime,inoutType',
+    params: [
+      req.query.id,
+      req.query.year,
+      req.query.month,
+    ],
+    success: (result) => {
+      console.log(result);
+      res.send({data: result});
+    }
+  })
+})
+
 module.exports = router;
