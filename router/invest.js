@@ -86,11 +86,11 @@ router.post('/postFundData', (req, res) => {
   let user = JSON.parse(Object.keys(req.body));
   handler.exec({
     sql:
-      'INSERT INTO fundinvest (id,accountName,totalPrice,buyPrice,buyTime,fundCode) VALUES (?,?,?,?,?,?);',
+      'INSERT INTO fundinvest (id,accountName,share,buyPrice,buyTime,fundCode) VALUES (?,?,?,?,?,?);',
     params: [
       user.id,
       user.accountName,
-      user.totalPrice,
+      user.share,
       user.buyPrice,
       new Date(user.buyTime),
       user.code,
@@ -105,7 +105,7 @@ router.post('/postFundData', (req, res) => {
 })
 // 获取用户投资信息
 router.get('/getFundInvest', (req,res) => {handler.exec({
-  sql:`SELECT fundinvest.fundCode,fundinvest.buyTime,fundinvest.buyPrice,fundinvest.floating,fundinvest.totalPrice,fundinvest.accountName,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
+  sql:`SELECT fundinvest.fundCode,fundinvest.buyTime,fundinvest.buyPrice,fundinvest.floating,fundinvest.share,fundinvest.accountName,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
   on fundinvest.fundCode = fundlist.fundCode
   WHERE id=?`,
   params: [ req.query.id],

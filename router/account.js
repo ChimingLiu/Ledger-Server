@@ -142,12 +142,13 @@ router.post('/newFundAccount', (req, res) => {
   let accountInfo = JSON.parse(Object.keys(req.body));
   handler.exec({
     sql:
-      'INSERT INTO useraccount (id, accountType, accountBalance, accountName) VALUES (?,?,?,?);',
+      'INSERT INTO useraccount (id, accountType, accountBalance, accountName,accountRemark) VALUES (?,?,?,?,?);',
     params: [
       accountInfo.id,
       accountInfo.type,
       accountInfo.balance,
       accountInfo.name,
+      accountInfo.remark,
     ],
     success: (result) => {
       if (result.affectedRows > 0) {
@@ -167,7 +168,7 @@ router.post('/newFundAccount', (req, res) => {
 // 获取用户资金账户
 router.get('/getFundAccount', (req, res) => {
   handler.exec({
-    sql: 'SELECT accountType,accountName,accountBalance FROM useraccount WHERE id=?;',
+    sql: 'SELECT accountType,accountName,accountBalance,accountRemark FROM useraccount WHERE id=?;',
     params: [req.query.id],
     success: (result) => {
       // res.send({ data: result });
@@ -318,7 +319,65 @@ router.get('/userMonthInout', (req, res) => {
       req.query.month,
     ],
     success: (result) => {
-      console.log(result);
+      res.send({data: result});
+    }
+  })
+})
+
+
+
+// 按月查询用户类别支出收入情况
+router.get('/userMonthCategory', (req, res) => {
+  handler.exec({
+    sql: 'SELECT sum(userinout.balance) as \`value\`,userinout.inoutType,inoutType.typeName as \`name\`' +
+    'FROM userinout LEFT JOIN inouttype '+
+    'on userinout.typeID = inouttype.typeID '+
+    'WHERE id =? '+
+    'AND  year(inoutTime)=? and month(inoutTime)=? '+
+    'GROUP BY userinout.typeID,inoutType',
+    params: [
+      req.query.id,
+      req.query.year,
+      req.query.month,
+    ],
+    success: (result) => {
+      res.send({data: result});
+    }
+  })
+})
+
+// 按年查询用户类别支出收入情况
+router.get('/userYearCategory', (req, res) => {
+  handler.exec({
+    sql: 'SELECT sum(userinout.balance) as \`value\`,userinout.inoutType,inoutType.typeName as \`name\`' +
+    'FROM userinout LEFT JOIN inouttype '+
+    'on userinout.typeID = inouttype.typeID '+
+    'WHERE id =? '+
+    'AND  year(inoutTime)=? '+
+    'GROUP BY userinout.typeID,inoutType',
+    params: [
+      req.query.id,
+      req.query.year,
+      req.query.month,
+    ],
+    success: (result) => {
+      res.send({data: result});
+    }
+  })
+})
+
+// 查询用户某年收入支出数据
+router.get('/userYearInout', (req, res) => {
+  handler.exec({
+    sql: 'SELECT month(inoutTime) as m, SUM(balance) as sum, inoutType '+
+    'FROM userinout WHERE id=? ' + 
+    'AND  year(inoutTime)=? ' +
+    'GROUP BY month(inoutTime),inoutType',
+    params: [
+      req.query.id,
+      req.query.year,
+    ],
+    success: (result) => {
       res.send({data: result});
     }
   })
