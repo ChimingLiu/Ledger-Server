@@ -104,7 +104,7 @@ router.post('/postFundData', (req, res) => {
 router.get('/getFundInvest', (req, res) => {
   handler.exec({
     sql: `SELECT fundinvest.fundCode,fundinvest.buyTime,fundinvest.buyPrice,
-    fundlist.prePrice,fundinvest.share,fundinvest.accountName,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
+    ,fundinvest.buyPrice,fundinvest.share,fundinvest.accountName,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
   on fundinvest.fundCode = fundlist.fundCode
   WHERE id=?`,
     params: [req.query.id],

@@ -103,8 +103,7 @@ router.post('/postFundData', (req, res) => {
 // 获取用户投资信息
 router.get('/getFundInvest', (req, res) => {
   handler.exec({
-    sql: `SELECT fundinvest.fundCode,fundinvest.buyTime,fundinvest.buyPrice,
-    fundlist.prePrice,fundinvest.share,fundinvest.accountName,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
+    sql: `SELECT fundinvest.fundCode,fundinvest.buyTime,fundinvest.buyPrice,fundinvest.floating,fundinvest.share,fundinvest.accountName,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
   on fundinvest.fundCode = fundlist.fundCode
   WHERE id=?`,
     params: [req.query.id],
@@ -117,8 +116,9 @@ router.get('/getFundInvest', (req, res) => {
           map.set(result[i].name, [result[i]]);
         }
       }
-      console.log(map);
-      res.send({data: [...map]});
+      let tableData = map.entries();
+      console.log(tableData);
+      res.send({ status: true, data: JSON.stringify(tableData) });
     },
 
     error: (err) => {

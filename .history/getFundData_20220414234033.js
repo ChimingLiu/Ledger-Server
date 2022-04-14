@@ -53,9 +53,9 @@ function updateFundPrice(db) {
   for (let i = 0; i < data.length; i++) {
     handler.exec({
       sql: 'UPDATE fundlist SET currentPrice = ? ,prePrice = ? WHERE fundcode =?',
-      params: [data[i][3], data[i][5], data[i][0]],
+      params: [data[i][3], data[i][0], data[i][5]],
       success: (result) => {
-        console.log([data[i][3], data[i][5], data[i][0]]);
+        console.log([data[i][3], data[i][0], data[i][5]]);
       },
       error: (err) => {
         res.send({ msg: error });
