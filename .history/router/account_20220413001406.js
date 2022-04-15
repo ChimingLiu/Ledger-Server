@@ -214,6 +214,7 @@ router.get('/deleteAccount', (req,res) => {
           req.query.accountName,
         ],
         success: (r) => {
+          console.log(r,'ddddd',req.query.id,req.query.accountName);
           res.send({code:200})
         }
       },)

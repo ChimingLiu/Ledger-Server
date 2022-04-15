@@ -119,16 +119,14 @@ router.get('/getFundInvest', (req, res) => {
         }
       }
       for([k,v] of map.entries()) {
-        let temp = [0, 0, 0];
+        let temp = [0, 0];
         for(let i=0;i<v.length;i++) {
           temp[0] += v[i].share;
-          temp[1] += (v[i].share * v[i].buyPrice);
+          temp[1] += v[i].share * v[i].buyPrice;
         }
-        temp[2] = (temp[0] * v[0].currentPrice);
-        temp[3] = (temp[2] - temp[1]);
+        temp[2] = temp[0] * v.currentPrice;
         map.get(k).unshift(temp);
       }
-      // console.log(map);
       res.send({data: [...map]});
     },
 

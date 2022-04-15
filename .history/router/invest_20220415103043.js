@@ -104,10 +104,10 @@ router.post('/postFundData', (req, res) => {
 router.get('/getFundInvest', (req, res) => {
   handler.exec({
     sql: `SELECT fundinvest.fundCode,fundinvest.buyTime,fundinvest.buyPrice,
-    fundlist.prePrice,SUM(fundinvest.share) as share,fundinvest.accountName,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
+    fundlist.prePrice,fundinvest.share,fundinvest.accountName,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
   on fundinvest.fundCode = fundlist.fundCode
-  WHERE id=? 
-  GROUP BY fundinvest.buyTime,fundinvest.fundCode`,
+  GROUP BY fundinvest.buyTime
+  WHERE id=?`,
     params: [req.query.id],
     success: (result) => {
       const map = new Map();
@@ -118,17 +118,7 @@ router.get('/getFundInvest', (req, res) => {
           map.set(result[i].name, [result[i]]);
         }
       }
-      for([k,v] of map.entries()) {
-        let temp = [0, 0, 0];
-        for(let i=0;i<v.length;i++) {
-          temp[0] += v[i].share;
-          temp[1] += (v[i].share * v[i].buyPrice);
-        }
-        temp[2] = (temp[0] * v[0].currentPrice);
-        temp[3] = (temp[2] - temp[1]);
-        map.get(k).unshift(temp);
-      }
-      // console.log(map);
+      console.log(map);
       res.send({data: [...map]});
     },
 

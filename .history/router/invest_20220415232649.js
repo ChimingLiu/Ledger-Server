@@ -126,6 +126,7 @@ router.get('/getFundInvest', (req, res) => {
         }
         temp[2] = (temp[0] * v[0].currentPrice);
         temp[3] = (temp[2] - temp[1]);
+        console.log(temp);
         map.get(k).unshift(temp);
       }
       // console.log(map);
