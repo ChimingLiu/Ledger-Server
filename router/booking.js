@@ -59,8 +59,14 @@ router.get('/inFlowType', (req, res) => {
 router.get('/getInOutInfo', (req, res) => {
   handler.exec({
     sql:
-      'SELECT accountName,inoutType,balance,inoutTime,typeName,iconName, `index`,comment FROM userinout m LEFT JOIN inouttype l on m.typeID = l.typeID WHERE id=? ' +
-      'ORDER BY inoutTime DESC LIMIT ?,?;',
+    `SELECT r.accountID, r.accountName as accountName,inoutType,balance,inoutTime,typeName,iconName, \`index\`,comment 
+    FROM userinout m
+    LEFT JOIN inouttype l
+    on m.typeID = l.typeID 
+    LEFT JOIN useraccount r
+    on m.accountID = r.accountID
+    WHERE m.id= ?
+    ORDER BY inoutTime DESC LIMIT ?,?;`,
     params: [req.query.id,req.query.length-0, req.query.length-0+20],
     success: (result) => {
       res.send({ status: true, data: result });
@@ -81,12 +87,13 @@ router.post('/outFlowCommit', (req, res) => {
   let outForm = JSON.parse(Object.keys(req.body));
   Promise.all([
     new Promise((resolve, reject) => {
+      console.log(outForm);
       handler.exec({
         sql:
-          'INSERT INTO userinout (id, accountName, inoutType, balance, inoutTime, typeID, comment) VALUES (?,?,?,?,?,?,?);',
+          'INSERT INTO userinout (id, accountID, inoutType, balance, inoutTime, typeID, comment) VALUES (?,?,?,?,?,?,?);',
         params: [
           outForm.id,
-          outForm.account,
+          outForm.accountID,
           'out',
           outForm.num,
           new Date(outForm.date),
@@ -104,11 +111,11 @@ router.post('/outFlowCommit', (req, res) => {
     new Promise((resolve, reject) => {
       handler.exec({
         sql:
-          'UPDATE useraccount SET accountBalance=accountBalance-? WHERE id=? AND accountName=?;',
+          'UPDATE useraccount SET accountBalance=accountBalance-? WHERE id=? AND accountID=?;',
         params: [
           outForm.num,
           outForm.id,
-          outForm.account,
+          outForm.accountID,
         ],
         success: (result) => {
           resolve(result)
@@ -134,10 +141,10 @@ router.post('/inFlowCommit', (req, res) => {
     new Promise((resolve, reject) => {
       handler.exec({
         sql:
-          'INSERT INTO userinout (id, accountName, inoutType, balance, inoutTime, typeID) VALUES (?,?,?,?,?,?);',
+          'INSERT INTO userinout (id, accountID, inoutType, balance, inoutTime, typeID) VALUES (?,?,?,?,?,?);',
         params: [
           outForm.id,
-          outForm.account,
+          outForm.accountID,
           'in',
           outForm.num,
           new Date(outForm.date),
@@ -156,11 +163,11 @@ router.post('/inFlowCommit', (req, res) => {
     new Promise((resolve, reject) => {
       handler.exec({
         sql:
-          'UPDATE useraccount SET accountBalance=accountBalance+? WHERE id=? AND accountName=?;',
+          'UPDATE useraccount SET accountBalance=accountBalance+? WHERE id=? AND accountID=?;',
         params: [
           outForm.num,
           outForm.id,
-          outForm.account,
+          outForm.accountID,
         ],
         success: (result) => {
           resolve(result)

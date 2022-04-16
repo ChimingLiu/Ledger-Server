@@ -9,6 +9,11 @@ const handler = require('../database.js');
 const updateCoin = require('../updateCoin.js');
 const { Route } = require('express');
 
+// 随机生成uuid
+function getUuiD(randomLength){
+  return Number(Math.random().toString().substr(2,randomLength) + Date.now()).toString(36)
+}
+
 /**
  * 用户登录函数
  * 生成token 
@@ -20,17 +25,28 @@ router.post('/login', (req, res) => {
     // 获取用户数据有问题，后端小白无法解决暂时先这样能用
     let user = JSON.parse(Object.keys(req.body));
     handler.exec({
-      sql: 'SELECT * FROM `user` WHERE id=? AND pwd=?;',
+      sql: 'SELECT * FROM `user` WHERE email=? AND pwd=?;',
       params: [user.account, user.pwd],
       success: (result) => {
         if (result.length > 0) {
-          //这是加密的 key（密钥）
-          let secret = 'dktoken';
-          //生成 Token
-          let token = jwt.sign(user, secret, {
-            expiresIn: 60 * 60, // 设置过期时间, 24 小时
+          handler.exec({
+            sql: 'SELECT id FROM user WHERE email=?;',
+            params: [user.account],
+            success: (result) => {
+              //这是加密的 key（密钥）
+              let secret = 'dktoken';
+              //生成 Token
+              let token = jwt.sign(user, secret, {
+                expiresIn: 60 * 60, // 设置过期时间, 24 小时
+              });
+              res.send({ status: true, msg: user.account, token, id:result[0].id });
+              
+            },
+        
+            error: (err) => {
+              console.log(err);
+            },
           });
-          res.send({ status: true, msg: user.account, token });
         } else {
           res.send({ status: false, msg: '账号或密码错误' });
         }
@@ -101,7 +117,7 @@ router.get('/validateAccountExist', (req, res) => {
 // 获取用户信息
 router.get('/getInfo', (req, res) => {
   handler.exec({
-    sql: 'SELECT * FROM `user` WHERE id=?',
+    sql: 'SELECT email,userName,budget FROM `user` WHERE id=?',
     params: [req.query.id],
     success: (result) => {
       res.send({ status: true, data: result });
@@ -113,7 +129,56 @@ router.get('/getInfo', (req, res) => {
   });
 });
 
+// 修改用户信息
+router.get('/updateUserInfo', (req, res) => {
+  handler.exec({
+    sql: 'UPDATE `user` SET email=?, userName=?, budget=? WHERE id=?',
+    params: [req.query.email, 
+            req.query.name,
+            req.query.budget,
+            req.query.id],
+    success: (result) => {
+      res.send({ status: true, data: result });
+    },
 
+    error: (err) => {
+      console.log(err);
+    },
+  });
+});
+
+// 修改用户密码信息
+router.get('/updateUserPwd', (req, res) => {
+  handler.exec({
+    sql: 'UPDATE `user` SET pwd=? WHERE id=?',
+    params: [req.query.pwd,
+            req.query.id],
+    success: (result) => {
+      res.send({ status: true, data: result });
+    },
+
+    error: (err) => {
+      console.log(err);
+    },
+  });
+});
+
+// 验证原密码
+router.get('/confirmPwd', (req, res) => {
+  handler.exec({
+    sql: 'SELECT userName FROM user WHERE id=? AND pwd=?',
+    params: [req.query.id, 
+            req.query.pwd,],
+    success: (result) => {
+      if(result.length === 0) res.send({ status: false})
+      else res.send({ status: true});
+    },
+
+    error: (err) => {
+      console.log(err);
+    },
+  });
+});
 // 验证账户是否存在
 router.get('/validateAccountExist', (req, res) => {
   handler.exec({
@@ -142,13 +207,14 @@ router.post('/newFundAccount', (req, res) => {
   let accountInfo = JSON.parse(Object.keys(req.body));
   handler.exec({
     sql:
-      'INSERT INTO useraccount (id, accountType, accountBalance, accountName,accountRemark) VALUES (?,?,?,?,?);',
+      'INSERT INTO useraccount (id, accountType, accountBalance, accountName,accountRemark, accountID) VALUES (?,?,?,?,?, ?);',
     params: [
       accountInfo.id,
       accountInfo.type,
       accountInfo.balance,
       accountInfo.name,
       accountInfo.remark,
+      getUuiD(),
     ],
     success: (result) => {
       if (result.affectedRows > 0) {
@@ -168,21 +234,21 @@ router.post('/newFundAccount', (req, res) => {
 // 获取用户资金账户
 router.get('/getFundAccount', (req, res) => {
   handler.exec({
-    sql: 'SELECT accountType,accountName,accountBalance,accountRemark FROM useraccount WHERE id=?;',
+    sql: 'SELECT accountType,accountName,accountBalance,accountRemark, accountID FROM useraccount WHERE id=?;',
     params: [req.query.id],
     success: (result) => {
       // res.send({ data: result });
       handler.exec({
-        sql: 'SELECT inoutType,SUM(balance) as s,accountName FROM userinout '+
+        sql: 'SELECT inoutType,SUM(balance) as s,accountID FROM userinout '+
               'WHERE id=? '+
-              'GROUP BY accountName,inoutType',
+              'GROUP BY accountID,inoutType',
         params: [req.query.id],
         success: (temp) => {
           for(let i=0;i<result.length;i++) {
             result[i].in = 0;
             result[i].out = 0;
             for(let j=0;j<temp.length;j++) {
-              if(temp[j].accountName == result[i].accountName) {
+              if(temp[j].accountID == result[i].accountID) {
                 result[i][temp[j].inoutType] = temp[j].s;
               }
             }
@@ -201,17 +267,17 @@ router.get('/getFundAccount', (req, res) => {
 // 删除用户账户及其对应记账记录
 router.get('/deleteAccount', (req,res) => {
   handler.exec({
-    sql: 'DELETE FROM userinout WHERE id=? AND accountName=?;',
+    sql: 'DELETE FROM userinout WHERE id=? AND accountID=?;',
     params: [
       req.query.id,
-      req.query.accountName,
+      req.query.accountID,
     ],
     success: (result) => {
       handler.exec({
-        sql:'DELETE FROM useraccount WHERE id=? AND accountName=?;',
+        sql:'DELETE FROM useraccount WHERE id=? AND accountID=?;',
         params: [
           req.query.id,
-          req.query.accountName,
+          req.query.accountID,
         ],
         success: (r) => {
           res.send({code:200})

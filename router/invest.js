@@ -83,16 +83,18 @@ router.post('/postFundData', (req, res) => {
     Object.setPrototypeOf(req.body, new Object());
   let user = JSON.parse(Object.keys(req.body));
   handler.exec({
-    sql: 'INSERT INTO fundinvest (id,accountName,share,buyPrice,buyTime,fundCode) VALUES (?,?,?,?,?,?);',
+    sql: 'INSERT INTO fundinvest (id,accountID,share,buyPrice,buyTime,fundCode,investType) VALUES (?,?,?,?,?,?,?);',
     params: [
       user.id,
-      user.accountName,
+      user.accountID,
       user.share,
       user.buyPrice,
       new Date(user.buyTime),
       user.code,
+      user.type,
     ],
     success: (result) => {
+      console.log(user, result);
       res.send({ status: true });
     },
     error: (err) => {
@@ -100,13 +102,13 @@ router.post('/postFundData', (req, res) => {
     },
   });
 });
-// 获取用户投资信息
+// 获取用户投资基金信息
 router.get('/getFundInvest', (req, res) => {
   handler.exec({
     sql: `SELECT fundinvest.fundCode,fundinvest.buyTime,fundinvest.buyPrice,
-    fundlist.prePrice,SUM(fundinvest.share) as share,fundinvest.accountName,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
+    fundlist.prePrice,SUM(fundinvest.share) as share,fundinvest.accountID,fundlist.name,fundlist.currentPrice FROM fundinvest LEFT JOIN fundlist 
   on fundinvest.fundCode = fundlist.fundCode
-  WHERE id=? 
+  WHERE id=? AND fundinvest.investType ='fund'
   GROUP BY fundinvest.buyTime,fundinvest.fundCode`,
     params: [req.query.id],
     success: (result) => {
@@ -128,7 +130,6 @@ router.get('/getFundInvest', (req, res) => {
         temp[3] = (temp[2] - temp[1]);
         map.get(k).unshift(temp);
       }
-      // console.log(map);
       res.send({data: [...map]});
     },
 
@@ -139,4 +140,58 @@ router.get('/getFundInvest', (req, res) => {
   });
 });
 
+
+// 请求获取股票代码
+router.get('/getStockCode', (req, res) => {
+  handler.exec({
+    sql: 'SELECT stock,code FROM stock WHERE code LIKE ? LIMIT 6',
+    params: [req.query.code + '%'],
+    success: (result) => {
+      res.send({ status: true, data: result });
+    },
+
+    error: (err) => {
+      console.log(err);
+    },
+  });
+});
+
+// 获取用户投资股票信息
+router.get('/getStockInvest', (req, res) => {
+  handler.exec({
+    sql: `SELECT stock.code,fundinvest.buyTime,fundinvest.buyPrice,
+    SUM(fundinvest.share) as share,fundinvest.accountID,stock.stock 
+    FROM fundinvest LEFT JOIN stock 
+    on fundinvest.fundCode = stock.code
+    WHERE id=? AND fundinvest.investType ='stock'
+    GROUP BY fundinvest.buyTime,fundinvest.fundCode`,
+    params: [req.query.id],
+    success: (result) => {
+      const map = new Map();
+      for (let i = 0; i < result.length; i += 1) {
+        if (map.has(result[i].stock)) {
+          map.get(result[i].stock).push(result[i]);
+        } else {
+          map.set(result[i].name, [result[i]]);
+        }
+      }
+      for([k,v] of map.entries()) {
+        let temp = [0, 0, 0];
+        for(let i=0;i<v.length;i++) {
+          temp[0] += v[i].share;
+          temp[1] += (v[i].share * v[i].buyPrice);
+        }
+        temp[2] = (temp[0] * v[0].currentPrice);
+        temp[3] = (temp[2] - temp[1]);
+        map.get(k).unshift(temp);
+      }
+      res.send({data: [...map]});
+    },
+
+    error: (err) => {
+      console.log(err);
+      res.send({ status: false, error: err });
+    },
+  });
+});
 module.exports = router;
