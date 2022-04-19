@@ -8,9 +8,10 @@ const handler = require('./database.js');
 const updateCoin = require('./updateCoin.js');
 
 const request = require('request');
+const jwt = require('jsonwebtoken');
 
-/* 
- *引入router 
+/*
+ *引入router
  * */
 const accountRouter = require('./router/account');
 const bookingRouter = require('./router/booking');
@@ -40,11 +41,50 @@ app.use(bodyParser.urlencoded({ extended: false }));
 //   });
 // });
 
+// const signkey = 'dktoken';
+// // 验证token
+// verToken = (token) => {
+//   return new Promise((resolve, reject) => {
+//     console.log(token);
+//     jwt.verify(token, signkey, (err, result) => {
+//       if (err) {
+//         reject(err);
+//       } else {
+//         resolve(result);
+//       }
+//     });
+//   });
+// };
+
+// app.use(function(req, res, next) {
+//     const URL = req.url;
+//     console.log(URL);
+//     if (URL === '/account/login') {
+//     // 登录接口无需校验
+//         next()
+//     }
+
+//     // 获取token值
+//     const authorization = req.headers['token'];
+
+//     if (authorization === "undefined") {
+//         res.status(401).send('Unauthorized')
+//     } else {
+//         // 验证token
+//         verToken(authorization).then((data) => {
+//             req.data = data;
+//             next();
+//         }).catch((error) => {
+//             res.status(401).send('Unauthorized');
+//         })
+//     }
+// })
+
 app.all('*', function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
   res.header(
     'Access-Control-Allow-Headers',
-    'Content-Type,Content-Length, Accept,X-Requested-With, token'
+    'Content-Type,Content-Length, Accept,X-Requested-With, token',
   );
   res.header('Access-Control-Allow-Methods', 'PUT,POST,GET,DELETE,OPTIONS');
   res.header('X-Powered-By', ' 3.2.1');
@@ -57,25 +97,25 @@ app.all('*', function (req, res, next) {
 //拦截所有请求
 //extended:false 方法内部使用querystring模块处理请求参数的格式
 //extended:true 方法内部使用第三方模块qs处理请求参数的格式
-app.use(bodyParser.urlencoded({ extended: false }));
+// app.use(bodyParser.urlencoded({ extended: false }));
 // 账号相关路由
 app.use('/account', accountRouter);
 // 记账相关路由
 app.use('/booking', bookingRouter);
 // 记账相关路由
 app.use('/invest', investRouter);
-app.get('/sse', (req,res) => {
+app.get('/sse', (req, res) => {
   res.header({
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    "Connection": "keep-alive",
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
   });
-  res.write("data: " + (new Date()) + "\n\n");
+  res.write('data: ' + new Date() + '\n\n');
   setInterval(async () => {
     let newData = await updateCoin.SSEUpdaePrice();
-    res.write('new'+ JSON.stringify(newData));
+    res.write('new' + JSON.stringify(newData));
   }, 5000);
-})
+});
 
 // 使用express监听端口号，
 app.listen(5555, function () {

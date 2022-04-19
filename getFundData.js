@@ -10,7 +10,7 @@ function getFundData() {
     if (!error && response.statusCode == 200) {
       eval(body);
       handler.exec({
-        sql: 'truncate table fundlist;',
+        sql: 'truncate table investlist;',
         params: [],
         success: (result) => {
           console.log('del fundlist success');
@@ -22,9 +22,10 @@ function getFundData() {
       for (let i = 0; i < r.length; i++) {
         let data = r[i]
         handler.exec({
-          sql: 'INSERT INTO fundlist  (fundcode,name, type) VALUES (?,?,?)',
-          params: [data[0], data[2], data[3]],
+          sql: 'INSERT INTO investlist  (code,name,type) VALUES (?,?,\'fund\')',
+          params: [data[0], data[2]],
           success: (result) => {
+            console.log('insert', i);
           },
           error: (err) => {
             console.log(err);
@@ -34,7 +35,8 @@ function getFundData() {
     }
   });
 }
-getFundData();
+// 更新基金名代码等信息
+// getFundData();
 // 获取天天基金中的基金信息，插入到data.js文件中
 function getFundPrice() {
   const url =
@@ -52,7 +54,7 @@ function updateFundPrice(db) {
   let data = db.datas;
   for (let i = 0; i < data.length; i++) {
     handler.exec({
-      sql: 'UPDATE fundlist SET currentPrice = ? ,prePrice = ? WHERE fundcode =?',
+      sql: 'UPDATE investlist SET currentPrice = ? ,prePrice = ? WHERE code =? AND type=\'fund\'',
       params: [data[i][3], data[i][5], data[i][0]],
       success: (result) => {
         console.log([data[i][3], data[i][5], data[i][0]]);

@@ -11,21 +11,23 @@ function getFundData() {
       let temp = body.split('(')[1];
       temp = temp.split(')')[0];
       const totalData = JSON.parse(temp).data.diff;
-      handler.exec({
-        sql: 'truncate table stock;',
-        params: [],
-        success: (result) => {
-          console.log('del fundlist success');
-        },
-        error: (err) => {
-          console.log(err);
-        },
-      });
+      // handler.exec({
+      //   sql: 'truncate table stock;',
+      //   params: [],
+      //   success: (result) => {
+      //     console.log('del fundlist success');
+      //   },
+      //   error: (err) => {
+      //     console.log(err);
+      //   },
+      // });
       for (let item of totalData) {
         handler.exec({
-          sql: 'INSERT INTO stock  (stock,code) VALUES (?,?)',
+          sql: 'INSERT INTO investlist  (name,code,type) VALUES (?,?,\'stock\')',
           params: [item.f14, item.f12],
-          success: (result) => {},
+          success: (result) => {
+            console.log('d', item.f12);
+          },
           error: (err) => {
             console.log(err);
           },

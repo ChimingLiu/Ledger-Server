@@ -11,7 +11,6 @@
   "dependencies": {
     "body-parser": "^1.19.0",
     "connect-multiparty": "^2.2.0",
-    "express": "^4.17.1",
     "fs": "0.0.1-security",
     "http-proxy-middleware": "^2.0.0",
     "jsonwebtoken": "^8.5.1",
@@ -22,5 +21,8 @@
     "superagent": "^6.1.0",
     "ws": "^7.4.5"
   },
-  "dev": "nodemon node node.js"
+  "dev": "nodemon node node.js",
+  "devDependencies": {
+    "express": "^4.17.3"
+  }
 }

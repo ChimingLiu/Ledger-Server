@@ -84,8 +84,13 @@ router.post('/registerCommit', (req, res) => {
   // 获取用户数据有问题，后端小白无法解决暂时先这样能用
   let user = JSON.parse(Object.keys(req.body));
   handler.exec({
-    sql: 'INSERT INTO `user` (userName, id, pwd) VALUES (?, ?,?);',
-    params: [user.username, user.userEmail, user.password],
+    sql: 'INSERT INTO `user` (userName, email, pwd, id) VALUES (?, ?,?,?);',
+    params: [
+      user.username, 
+      user.userEmail, 
+      user.password, 
+      getUuiD(5),
+    ],
     success: (result) => {
       res.send({success:true})
     },
@@ -394,7 +399,7 @@ router.get('/userMonthInout', (req, res) => {
 // 按月查询用户类别支出收入情况
 router.get('/userMonthCategory', (req, res) => {
   handler.exec({
-    sql: 'SELECT sum(userinout.balance) as \`value\`,userinout.inoutType,inoutType.typeName as \`name\`' +
+    sql: 'SELECT sum(userinout.balance) as \`value\`,userinout.inoutType,inouttype.typeName as \`name\`' +
     'FROM userinout LEFT JOIN inouttype '+
     'on userinout.typeID = inouttype.typeID '+
     'WHERE id =? '+
@@ -447,5 +452,6 @@ router.get('/userYearInout', (req, res) => {
     }
   })
 })
+
 
 module.exports = router;
