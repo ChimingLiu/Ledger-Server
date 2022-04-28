@@ -9,6 +9,7 @@ const updateCoin = require('./updateCoin.js');
 
 const request = require('request');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 
 /*
  *引入router
@@ -19,67 +20,49 @@ const investRouter = require('./router/invest');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// app.get('/api/getCoinPrice', async (req, res) => {
-//   const queryBody = req.query;
-//   console.log(req.query);
-//   const url = 'https://api.zb.today/data/v1/ticker/?market=' + req.query.market;
-//   let resBody = {};
-//   request(url, function (error, response, body) {
-//     if (!error && response.statusCode == 200) {
-//       resBody = body;
-//       res.header('Access-Control-Allow-Origin', '*');
-//       res.header(
-//         'Access-Control-Allow-Headers',
-//         'Content-Type,Content-Length, Auth, Accept,X-Requested-With',
-//       );
-//       res.header('Access-Control-Allow-Methods', 'PUT,POST,GET,DELETE,OPTIONS');
-//       res.header('X-Powered-By', ' 3.2.1');
-//       body = JSON.parse(body);
-//       res.send({ body });
-//       console.log(body); // 请求成功的处理逻辑
-//     }
-//   });
-// });
+const signkey = 'dktoken';
+// 验证token
+verToken = (token) => {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, signkey, (err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+};
 
-// const signkey = 'dktoken';
-// // 验证token
-// verToken = (token) => {
-//   return new Promise((resolve, reject) => {
-//     console.log(token);
-//     jwt.verify(token, signkey, (err, result) => {
-//       if (err) {
-//         reject(err);
-//       } else {
-//         resolve(result);
-//       }
-//     });
-//   });
-// };
-
-// app.use(function(req, res, next) {
-//     const URL = req.url;
-//     console.log(URL);
-//     if (URL === '/account/login') {
+// app.use(function (req, res, next) {
+//   const URL = req.url;
+//   if (URL === '/account/login') {
 //     // 登录接口无需校验
-//         next()
-//     }
+//     next();
+//     return;
+//   }
 
-//     // 获取token值
-//     const authorization = req.headers['token'];
-
-//     if (authorization === "undefined") {
-//         res.status(401).send('Unauthorized')
-//     } else {
-//         // 验证token
-//         verToken(authorization).then((data) => {
-//             req.data = data;
-//             next();
-//         }).catch((error) => {
-//             res.status(401).send('Unauthorized');
-//         })
-//     }
-// })
-
+//   // 获取token值
+//   const authorization = req.headers['token'];
+//   console.log(URL, authorization);
+//   console.log(req.headers.token);
+//   if (authorization === 'undefined') {
+//     console.log(req.headers);
+//     res.status(401).send('Unauthorized');
+//   } else {
+//     // 验证token
+//     verToken(authorization)
+//       .then((data) => {
+//         req.data = data;
+//         next();
+//         return;
+//       })
+//       .catch((error) => {
+//         console.log('ttk', req.headers.token);
+//         res.status(401).send('Unauthorized');
+//       });
+//   }
+// });
 app.all('*', function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
   res.header(
@@ -117,7 +100,69 @@ app.get('/sse', (req, res) => {
   }, 5000);
 });
 
-// 使用express监听端口号，
+
+// 通过获取github的用户信息
+async function getData(code) {
+  const clientID = 'f56acef48356495c9eb0';
+  const clientSecret = 'd1159b6dacab2ef1bd3fe5c5912e821677ea210d';
+  const requestToken = code;
+  const url =
+    'https://github.com/login/oauth/access_token?' +
+    `client_id=${clientID}&` +
+    `client_secret=${clientSecret}&` +
+    `code=${requestToken}`;
+  const tokenResponse = await axios({
+    method: 'post',
+    url: url,
+    headers: {
+      accept: 'application/json',
+    },
+  });
+  const accessToken = tokenResponse.data.access_token;
+  const result = await axios({
+    method: 'get',
+    url: `https://api.github.com/user`,
+    headers: {
+      accept: 'application/json',
+      Authorization: `token ${accessToken}`,
+    },
+  });
+  return result;
+}
+
+// Ouath 回调
+app.get('/cb',async (req, res) => {
+  // const result = await(getData(req.query.code));
+  const result = {};
+  result.id = '42761014';
+  let url = ''
+  handler.exec({
+    sql: 'SELECT id,email FROM `user` WHERE gitHubID=?',
+    params: [
+      result.id
+    ],
+    success: (data) => {
+      if (data.length === 0) {
+        URL=`http://localhost:8080/#/redirect?gitHubID=${result.id}`;
+      } else {
+        // 这是加密的 key（密钥）
+        let secret = 'dktoken';
+        //生成 Token
+        let token = jwt.sign({email: data[0].email}, secret, {
+          expiresIn: 60 * 60, // 设置过期时间, 24 小时
+        });
+        URL=`http://localhost:8080/#/redirect?id=${data[0].id}&email=${data[0].email}&token=${token}`
+      }
+    },
+    error: (err) => {
+      // res.send({ success:false });
+    },
+  });
+  // 如果服务器内没有改用户
+  res.redirect(URL);
+});
+
+// 使用express监听端口号
 app.listen(5555, function () {
   console.log('listen to 5555......');
 });

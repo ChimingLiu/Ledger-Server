@@ -171,7 +171,7 @@ router.post('/inFlowCommit', (req, res) => {
         params: [
           inForm.id,
           inForm.accountID,
-          'out',
+          'in',
           inForm.num,
           new Date(inForm.date),
           inForm.typeID,

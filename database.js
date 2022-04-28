@@ -4,22 +4,22 @@ const mysql = require('mysql');
  * 数据库操作封装
  */
 module.exports = {
-    // config: {
-    //     host: 'localhost',
-    //     port: 3306,
-    //     database: 'ledger',
-    //     user: 'root',
-    //     password: '123456',
-    //     useConnectionPooling: true // 使用连接池
-    // },
     config: {
-        host: '149.28.41.83',
+        host: 'localhost',
         port: 3306,
         database: 'mydb',
-        user: 'mydb',
-        password: 'mydb',
+        user: 'root',
+        password: '123456',
         useConnectionPooling: true // 使用连接池
     },
+    // config: {
+    //     host: '149.28.41.83',
+    //     port: 3306,
+    //     database: 'mydb',
+    //     user: 'mydb',
+    //     password: 'mydb',
+    //     useConnectionPooling: true // 使用连接池
+    // },
     pool: null,
     /**
      * 创建连接池

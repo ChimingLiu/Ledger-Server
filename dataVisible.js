@@ -58,7 +58,6 @@ app.get('/newData',(req,res) => {
         data = JsonData;
         console.log('success');
     }).catch(err => {
-        console.log(data);
         res.send(data)
     })
 })

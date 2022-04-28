@@ -113,7 +113,8 @@ router.get('/getFundInvest', (req, res) => {
     LEFT JOIN investlist 
     on invest.code = investlist.code AND invest.investType = investlist.type
     WHERE id=? AND invest.investType ='fund'
-    GROUP BY invest.buyTime,invest.code`,
+    GROUP BY invest.buyTime,invest.code
+    ORDER BY invest.buyTime DESC`,
     params: [req.query.id],
     success: (result) => {
       const map = new Map();

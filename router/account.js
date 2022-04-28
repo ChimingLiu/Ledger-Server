@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const handler = require('../database.js');
 const updateCoin = require('../updateCoin.js');
 const { Route } = require('express');
+const nodeMail = require('../nodeMail.js');
 
 // 随机生成uuid
 function getUuiD(randomLength){
@@ -22,31 +23,19 @@ router.post('/login', (req, res) => {
     //   获取用户发送请求
     if (req.body.__proto__ === undefined)
       Object.setPrototypeOf(req.body, new Object());
-    // 获取用户数据有问题，后端小白无法解决暂时先这样能用
     let user = JSON.parse(Object.keys(req.body));
     handler.exec({
-      sql: 'SELECT * FROM `user` WHERE email=? AND pwd=?;',
+      sql: 'SELECT userName,email,budget,id FROM `user` WHERE email=? AND pwd=?;',
       params: [user.account, user.pwd],
       success: (result) => {
         if (result.length > 0) {
-          handler.exec({
-            sql: 'SELECT id FROM user WHERE email=?;',
-            params: [user.account],
-            success: (result) => {
-              //这是加密的 key（密钥）
-              let secret = 'dktoken';
-              //生成 Token
-              let token = jwt.sign(user, secret, {
-                expiresIn: 60 * 60, // 设置过期时间, 24 小时
-              });
-              res.send({ status: true, msg: user.account, token, id:result[0].id });
-              
-            },
-        
-            error: (err) => {
-              console.log(err);
-            },
+          //这是加密的 key（密钥）
+          let secret = 'dktoken';
+          //生成 Token
+          let token = jwt.sign(user, secret, {
+            expiresIn: 60 * 60, // 设置过期时间, 24 小时
           });
+          res.send({ status: true, msg: user.account, token, id:result[0].id });
         } else {
           res.send({ status: false, msg: '账号或密码错误' });
         }
@@ -57,6 +46,55 @@ router.post('/login', (req, res) => {
     });
   });
 
+
+/**
+ * 用户绑定gitHub
+ * 生成token 
+ */
+ router.post('/bindGitHubID', async (req, res) => {
+  //   获取用户发送请求
+  if (req.body.__proto__ === undefined)
+    Object.setPrototypeOf(req.body, new Object());
+  let user = JSON.parse(Object.keys(req.body));
+  function accountVerify(result) {
+    if (result.length === 1) {
+      if (result[0].gitHubID) {
+        res.send({msg:'该账户已被绑定'});
+      } else {
+        handler.exec({
+          sql: 'UPDATE user SET gitHubID=? WHERE id=?',
+          params: [user.GitHubID, result[0].id],
+          success: (data) => {
+            // 这是加密的 key（密钥）
+            let secret = 'dktoken';
+            //生成 Token
+            let token = jwt.sign(user, secret, {
+              expiresIn: 60 * 60, // 设置过期时间, 24 小时
+            });
+            res.send({ status: true, msg: user.account, token, id:result[0].id });
+          },
+          error: (err) => {
+            res.send({ msg: error });
+          },
+        });
+      }
+    } else {
+      res.send({ status: false, msg: '账号或密码错误' });
+    }
+  }
+  // 验证用户是否存在
+  await handler.exec({
+    sql: 'SELECT gitHubID,id FROM `user` WHERE email=? AND pwd=?;',
+    params: [user.account, user.pwd],
+    success: accountVerify,
+    error: (err) => {
+      res.send({ msg: error });
+    },
+  });
+  
+});
+
+// 验证token
 router.get('/verifytoken', (request, response) => {
   //这是加密的 key（密钥），和生成 token 时的必须一样
   let secret = 'dktoken';
@@ -66,23 +104,41 @@ router.get('/verifytoken', (request, response) => {
   }
   jwt.verify(token, secret, (error, result) => {
       if (error) {
-        console.log(error);
           response.send({ status: false, data: error });
       } else {
-        console.log(result);
           response.send({ status: true, data: result });
       }
   })
 })
 
-  
+// 测试用，获取新的token
+router.get('/getNewToken', (req, res) => {
+  const user = {email:'test'}
+  let secret = 'dktoken';
+  //生成 Token
+  let token = jwt.sign(user, secret, {
+    expiresIn: 60 * 60, // 设置过期时间, 24 小时
+  });
+  res.send({ status: true, msg: user.account, token});
+})
+
+const verificatioCode = new Map();
 // 用户注册信息提交
 router.post('/registerCommit', (req, res) => {
   //   获取用户发送请求
   if (req.body.__proto__ === undefined)
     Object.setPrototypeOf(req.body, new Object());
-  // 获取用户数据有问题，后端小白无法解决暂时先这样能用
   let user = JSON.parse(Object.keys(req.body));
+  let vcObj = verificatioCode.get(user.userEmail)
+  // 验证码错误
+  if (!verificatioCode.has(user.userEmail) || vcObj.vc != user.vc) {
+    res.send({status:false, msg:'验证码错误'});
+    return ;
+  } else if(Date.now() - vcObj.lastTime > 300000){
+    // 验证码超市
+    res.send({status:false, msg:'验证码错误'})
+    return;
+  }
   handler.exec({
     sql: 'INSERT INTO `user` (userName, email, pwd, id) VALUES (?, ?,?,?);',
     params: [
@@ -100,6 +156,43 @@ router.post('/registerCommit', (req, res) => {
   });
 })
 
+// 发送邮箱验证码
+router.get('/getVerificatioCode', async (req, res) => {
+  const email = req.query.email;
+  if(verificatioCode.has(email)) {
+    let obj = verificatioCode.get(email);
+    // 拦截两分钟内重复发送的验证码
+    if(Date.now() - obj.lastTime < 120000) {
+      res.send('验证码发送过于频繁，请稍后再试');
+      return;
+    }
+  }
+  //生成6位随机验证码
+  const code = String(Math.floor(Math.random() * 1000000)).padEnd(6, '0') 
+  //邮件配置
+  const mail = {
+      from: `"Ledger个人财务管理系统"<13025142863@163.com>`,// 发件人
+      subject: '个人财务管理系统验证码',//邮箱主题
+      to: email,//收件人，这里由post请求传递过来
+      // 邮件内容，用html格式编写
+      html: `
+          <p>您好！</p>
+          <p>您的验证码是：<strong style="color:orangered;">${code}</strong></p>
+          <p>验证码5分钟内有效</p>
+          <p>如果不是您本人操作，请无视此邮件</p>
+      ` 
+  };
+  // 发送邮件
+  await nodeMail.sendMail(mail, (err, info) => {
+      if (!err) {
+          verificatioCode.set(email, {lastTime:Date.now(), vc:code})
+          res.send("验证码发送成功")
+      } else {
+          res.send("验证码发送失败，请稍后重试");
+          console.log(err);
+      }
+  })
+});
 
 //验证资金账户是否存在
 router.get('/validateAccountExist', (req, res) => {
@@ -208,7 +301,6 @@ router.post('/newFundAccount', (req, res) => {
   //   获取用户发送请求
   if (req.body.__proto__ === undefined)
     Object.setPrototypeOf(req.body, new Object());
-  // 获取用户数据有问题，后端小白无法解决暂时先这样能用
   let accountInfo = JSON.parse(Object.keys(req.body));
   handler.exec({
     sql:
@@ -233,8 +325,6 @@ router.post('/newFundAccount', (req, res) => {
     },
   });
 });
-
-
 
 // 获取用户资金账户
 router.get('/getFundAccount', (req, res) => {
@@ -394,8 +484,6 @@ router.get('/userMonthInout', (req, res) => {
   })
 })
 
-
-
 // 按月查询用户类别支出收入情况
 router.get('/userMonthCategory', (req, res) => {
   handler.exec({
@@ -453,5 +541,28 @@ router.get('/userYearInout', (req, res) => {
   })
 })
 
+// 查询用户某一类别账户收入支出
+router.get('/userAccountSum', (req, res) => {
+  handler.exec({
+    sql: `SELECT inoutType,SUM(userinout.balance) as sum FROM userinout 
+    LEFT JOIN useraccount 
+    ON userinout.accountID = useraccount.accountID
+    WHERE useraccount.accountType = ?
+    AND userinout.id = ?
+    GROUP BY userinout.inoutType`,
+    params: [
+      req.query.type,
+      req.query.id,
+    ],
+    success: (result) => {
+      res.send({data: result});
+    }
+  })
+})
 
+// 通过token 获取用户id
+router.get('/viaTokenGetID', (req, res) => {
+  console.log(req.headers.token);
+  res.send('ddd')
+})
 module.exports = router;
