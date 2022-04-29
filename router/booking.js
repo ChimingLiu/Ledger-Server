@@ -85,7 +85,7 @@ router.get('/getInOutInfo', (req, res) => {
 router.get('/getAllInOutInfo', (req, res) => {
   handler.exec({
     sql:
-    `SELECT r.accountID, r.accountName as accountName,inoutType,balance,inoutTime,typeName,iconName, \`index\`,\`comment\`
+    `SELECT r.accountID, r.accountName as accountName,inoutType,balance,inoutTime,typeName,iconName, \`index\`,\`comment\`,r.accountType,l.typeID
     FROM userinout m
     LEFT JOIN inouttype l
     on m.typeID = l.typeID 
@@ -338,5 +338,93 @@ router.post('/submitExchange', (req, res) => {
     res.send(result)
   });
 });
+
+
+// 导入用户记账信息
+router.post('/importLedgerData', async (req, res) => {
+  if (req.body.__proto__ === undefined)
+    Object.setPrototypeOf(req.body, new Object());
+  let data = JSON.parse(Object.keys(req.body));
+  const id = data.id;
+  data = data.data;
+  let map = {};
+  for(let item of data) {
+    if(!map[item[1]]) {
+      map[item[1]] = {
+        name: item[1],
+        type: item[7],
+      }
+    }
+  }
+  for(let item of Object.values(map)) {
+    await exitAccount(item.name, item.type, id).then(res => {
+      map[item.name].code = res
+    });
+  }
+  for(let item of data) {
+    handler.exec({
+      sql: `INSERT INTO userinout (id, accountID, inoutType, balance, inoutTime, typeID, \`comment\`, \`index\`) 
+      VALUES (?,?,?,?,?,?,?,?);`,
+      params: [
+        id,
+        map[item[1]].code,
+        item[3],
+        parseFloat(item[2]),
+        new Date(item[0]),
+        Number(item[8]),
+        item[5],
+        getUuiD(10),
+      ],
+      success: (r) => {
+      },
+      error: (err) => {
+        res.send({ msg: error });
+      },
+    });
+  }
+  res.send({status: true});
+});
+
+async function exitAccount(name, type, id) {
+  return new Promise((resolve, rejcet) => {
+    let code = 0;
+    handler.exec({
+      sql: `SELECT accountID
+      FROM useraccount
+      WHERE id = ? AND accountName=? AND accountType=?`,
+      params: [id, name, type],
+      success: async (result) => {
+        if (result.length > 0) {
+          code =  result[0].accountID;
+          resolve(code)
+        }else createAccount(name, id, type);
+      }
+    })
+  })
+}
+
+async function createAccount(name, id, type) {
+  return new Promise((resolve, reject) => {
+    let accountID = getUuiD();
+    handler.exec({
+      sql:
+        'INSERT INTO useraccount (id, accountType, accountBalance, accountName,accountRemark, accountID) VALUES (?,?,?,?,?, ?);',
+      params: [
+        id,
+        type,
+        0,
+        name,
+        '',
+        accountID,
+      ],
+      success: () => {
+        resolve(accountID)
+      },
+      error: (err) => {
+        res.send({ msg: error });
+      },
+    });
+  })
+}
 
 module.exports = router;

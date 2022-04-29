@@ -6,65 +6,10 @@ const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 // 引入数据库连接
 const handler = require('../database.js');
-const updateCoin = require('../updateCoin.js');
 function getUuiD(randomLength){
   return Number(Math.random().toString().substr(2,randomLength) + Date.now()).toString(36)
 }
-// 因数据原因，不再支持虚拟货币
-// 向后台提交虚拟货币交易记录
-// router.post('/postTradingData', (req, res) => {
-//   if (req.body.__proto__ === undefined)
-//     Object.setPrototypeOf(req.body, new Object());
-//   let user = JSON.parse(Object.keys(req.body));
-//   handler.exec({
-//     sql: 'INSERT INTO investment (id,accountName,investType,totalPrice,buyPrice,buyTime,investName) VALUES (?,?,?,?,?,?,?);',
-//     params: [
-//       user.id,
-//       user.accountName,
-//       'coin',
-//       user.totalPrice,
-//       user.buyPrice,
-//       new Date(user.buyTime),
-//       user.name,
-//     ],
-//     success: (result) => {
-//       res.send({ status: true });
-//     },
-//     error: (err) => {
-//       res.send({ msg: error });
-//     },
-//   });
-// });
-// 获取后台投资信息
-// router.get('/getInvestment', async (req, res) => {
-//   handler.exec({
-//     sql:
-//       'SELECT  a.index,a.accountName,a.buyPrice,a.buyTime,a.floating,a.investName,a.soldPrice,a.soldTime,a.totalPrice,b.currentUSDT ' +
-//       'FROM investment a ,coindata b ' +
-//       'WHERE a.id=? AND a.investName = b.symbol AND investType=?;',
-//     params: [req.query.id, req.query.type],
-//     success: (result) => {
-//       res.send({ status: true, data: result });
-//     },
 
-//     error: (err) => {
-//       console.log(err);
-//     },
-//   });
-// });
-// 后台获取支持的虚拟货币
-// router.get('/getCoinType', (req, res) => {
-//   handler.exec({
-//     sql: 'SELECT  symbol FROM coinData',
-//     success: (result) => {
-//       res.send({ status: true, data: result });
-//     },
-
-//     error: (err) => {
-//       console.log(err);
-//     },
-//   });
-// });
 // 请求获取基金代码
 router.get('/getFundCode', (req, res) => {
   handler.exec({
@@ -145,7 +90,6 @@ router.get('/getFundInvest', (req, res) => {
   });
 });
 
-
 // 请求获取股票代码
 router.get('/getStockCode', (req, res) => {
   handler.exec({
@@ -199,4 +143,115 @@ router.get('/getStockInvest', (req, res) => {
     },
   });
 });
+
+// 获取用户所有投资信息
+router.get('/getAllInvest', (req, res) => {
+  handler.exec({
+    sql: `SELECT \`code\`,buyTime, buyPrice,\`share\`,investType,accountName,accountType,invest.accountID
+    FROM invest
+    LEFT JOIN useraccount
+    ON useraccount.accountID = invest.accountID AND useraccount.id = invest.id
+    WHERE invest.id = ?`,
+    params: [req.query.id],
+    success: (result) => {
+      res.send({data: result});
+    },
+
+    error: (err) => {
+      console.log(err);
+      res.send({ status: false, error: err });
+    },
+  });
+});
+
+// 导入用户的投资数据
+router.post('/importInvestData', async (req, res) => {
+  if (req.body.__proto__ === undefined)
+    Object.setPrototypeOf(req.body, new Object());
+  let data = JSON.parse(Object.keys(req.body));
+  const id = data.id;
+  data = data.data;
+  let map = {};
+  for(let item of data) {
+    if(!map[item[1]]) {
+      map[item[1]] = {
+        name: item[1],
+        type: item[7],
+      }
+    }
+  }
+  for(let item of Object.values(map)) {
+    await exitAccount(item.name, item.type, id).then(res => {
+      map[item.name].code = res
+    });
+  }
+  for(let item of data) {
+    handler.exec({
+      sql: `INSERT INTO invest 
+      (id,accountID,share,buyPrice,buyTime,code,investType,\`index\`) 
+      VALUES (?,?,?,?,?,?,?,?);`,
+      params: [
+        id,
+        map[item[1]].code,
+        Number(item[4]),
+        parseFloat(item[5]),
+        new Date(item[0]),
+        item[2],
+        item[3],
+        getUuiD(10),
+      ],
+      success: (r) => {
+        
+      },
+      error: (err) => {
+        res.send({ msg: error });
+      },
+    });
+  }
+  res.send({status: true});
+});
+
+async function exitAccount(name, type, id) {
+  return new Promise((resolve, rejcet) => {
+    let code = 0;
+    handler.exec({
+      sql: `SELECT accountID
+      FROM useraccount
+      WHERE id = ? AND accountName=? AND accountType=?`,
+      params: [id, name, type],
+      success: async (result) => {
+        if (result.length > 0) {
+          code =  result[0].accountID;
+          resolve(code)
+        }else createAccount(name, id, type);
+      }
+    })
+  })
+}
+
+async function createAccount(name, id, type) {
+  return new Promise((resolve, reject) => {
+    let accountID = getUuiD();
+    handler.exec({
+      sql:
+        'INSERT INTO useraccount (id, accountType, accountBalance, accountName,accountRemark, accountID) VALUES (?,?,?,?,?, ?);',
+      params: [
+        id,
+        type,
+        0,
+        name,
+        '',
+        accountID,
+      ],
+      success: () => {
+        resolve(accountID)
+      },
+      error: (err) => {
+        res.send({ msg: error });
+      },
+    });
+  })
+}
+
+
 module.exports = router;
